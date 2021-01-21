@@ -7,12 +7,17 @@ module.exports = (req, res) => {
     })
 
     handler.on('issue_comment', function (event) {
-        console.log('Received an issue comment event for %s action=%s: #%d %s',
-            event.payload.repository.name,
-            event.payload.action,
-            event.payload.issue.number,
-            event.payload.issue.title,
-            event.payload.comment.body)
+        const {
+            repository: { name: repoName },
+            action,
+            issue: { number: issueNumber, title: issueTitle },
+            comment: { body: commentBody }
+        } = event.payload
+        
+        console.log(`Received an issue comment event for ${repoName} action: ${action}'\n
+            issue: #${issueNumber}\n
+            title: ${issueTitle}\n
+            comment: ${commentBody}`)
     })
 
 }
