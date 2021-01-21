@@ -2,6 +2,7 @@ const createHandler = require('github-webhook-handler')
 const handler = createHandler({ path: '/api/hook', secret: 'secret' })
 
 module.exports = (req, res) => {
+    console.log(req.path)
     handler.on('issues', function (event) {
         console.log('Received an issue event for %s action=%s: #%d %s',
             event.payload.repository.name,
