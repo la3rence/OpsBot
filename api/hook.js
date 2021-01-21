@@ -17,19 +17,33 @@ handler.on('issue_comment', function (event) {
     console.log(`Received an issue comment event for ${ownerName}/${repoName} action: ${action}\n
         issue: #${issueNumber}\n
         title: ${issueTitle}\n
-        comment: ${commentBody}`)
+        comment.body: ${commentBody}`)
 
-    console.log("Call GitHub REST API to send data...")
-    octokit.issues.addLabels({
-        owner: ownerName,
-        repo: repoName,
-        issue_number: issueNumber,
-        labels: [commentBody],
-    }).then(({ data }) => {
-        console.log(`Done with response: ${data}`)
-    }).catch((error) => {
-        console.error(error)
-    });
+    switch (action) {
+        case 'edited':
+            console.log("edit issue comment")
+        case 'created':
+            console.log("create issue comment")
+            console.log("call GitHub REST API")
+            octokit.issues.addLabels({
+                owner: ownerName,
+                repo: repoName,
+                issue_number: issueNumber,
+                labels: [commentBody],
+            }).then(({ data }) => {
+                console.log(`GitHub response: ${data}`)
+            }).catch((error) => {
+                console.error(error)
+            });
+            break;
+        case 'deleted':
+            console.log("delete issue comment")
+            break;
+        default:
+            break;
+    }
+
+    console.log('done')
 })
 
 module.exports = (req, res) => {
