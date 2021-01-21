@@ -1,9 +1,7 @@
 const createHandler = require('github-webhook-handler')
-const url = require('url')
+const handler = createHandler({ path: '/api/hook', secret: 'secret' })
 
 module.exports = (req, res) => {
-    const path = url.parse(req.url).pathname
-    const handler = createHandler({ path, secret: 'secret' })
     console.log(handler)
     handler(req, res, function (err) {
         res.statusCode = 404
