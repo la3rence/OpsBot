@@ -3,7 +3,7 @@ const url = require('url')
 const handler = createHandler({ path: '/api/hook', secret: 'secret' })
 
 module.exports = (req, res) => {
-    console.log(url.parse(request.url).pathname)
+    console.log(url.parse(req.url).pathname)
     handler.on('issues', function (event) {
         console.log('Received an issue event for %s action=%s: #%d %s',
             event.payload.repository.name,
