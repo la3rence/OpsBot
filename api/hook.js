@@ -6,7 +6,7 @@ const octokit = new Octokit({
     auth: process.env.BOT_TOKEN,
 });
 
-handler.on('issue_comment', function (event) {
+handler.on('issue_comment', async function (event) {
     const {
         repository: { name: repoName, owner: { login: ownerName } },
         action,
@@ -25,17 +25,13 @@ handler.on('issue_comment', function (event) {
         case 'created':
             console.log("create issue comment")
             console.log("call GitHub REST API")
-            octokit.issues.addLabels({
+            const resp = await octokit.issues.addLabels({
                 owner: ownerName,
                 repo: repoName,
                 issue_number: issueNumber,
                 labels: [commentBody],
-            }).then(({ data, err }) => {
-                console.log(`GitHub response: ${data}`)
-                console.log(err)
-            }).catch((error) => {
-                console.error(error)
-            });
+            })
+            console.log(`esponse: ${resp}`)
             break;
         case 'deleted':
             console.log("delete issue comment")
