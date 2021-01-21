@@ -24,7 +24,9 @@ handler.on('issue_comment', function (event) {
         owner: ownerName,
         repo: repoName,
         issue_number: issueNumber,
-        labels: commentBody,
+        labels: [commentBody],
+    }).then(({ data }) => {
+        console.log(`Done with response: ${data}`)
     });
 })
 
