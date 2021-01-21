@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/Lonor/OpsBot/issues"
   },
-  "homepage": "https://github.com/Lonor/OpsBot#readme"
+  "homepage": "https://github.com/Lonor/OpsBot#readme",
+  "dependencies": {
+    "github-webhook-handler": "^1.0.0"
+  }
 }
