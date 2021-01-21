@@ -27,6 +27,8 @@ handler.on('issue_comment', function (event) {
         labels: [commentBody],
     }).then(({ data }) => {
         console.log(`Done with response: ${data}`)
+    }).catch((error) => {
+        console.error(error)
     });
 })
 
