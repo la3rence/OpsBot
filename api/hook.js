@@ -31,7 +31,7 @@ handler.on('issue_comment', async function (event) {
                 issue_number: issueNumber,
                 labels: [commentBody],
             })
-            console.log(`esponse: ${resp}`)
+            console.log(`response: ${resp}`)
             break;
         case 'deleted':
             console.log("delete issue comment")
@@ -39,12 +39,11 @@ handler.on('issue_comment', async function (event) {
         default:
             break;
     }
-
     console.log('done')
 })
 
-module.exports = (req, res) => {
-    handler(req, res, function (err) {
+module.exports = async (req, res) => {
+    await handler(req, res, function (err) {
         console.log(err)
     })
 }
