@@ -9,17 +9,19 @@ module.exports = (req, res) => {
         res.end('no such location')
     })
 
+    handler.on('issue_comment', function (event) {
+        console.log('Received an issue comment event for %s action=%s: #%d %s',
+            event.payload.repository.name,
+            event.payload.action,
+            event.payload.issue.number,
+            event.payload.issue.title)
+        console.log("payload:\n" + event.payload)
+        res.json({
+            body: req.body,
+            query: req.query,
+            cookies: req.cookies,
+        })
+    })
+
 }
 
-handler.on('issues', function (event) {
-    console.log('Received an issue event for %s action=%s: #%d %s',
-        event.payload.repository.name,
-        event.payload.action,
-        event.payload.issue.number,
-        event.payload.issue.title)
-    res.json({
-        body: req.body,
-        query: req.query,
-        cookies: req.cookies,
-    })
-})
