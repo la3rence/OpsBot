@@ -13,9 +13,6 @@ module.exports = (req, res) => {
             event.payload.issue.number,
             event.payload.issue.title,
             event.payload.comment.body)
-        res.json(
-            { "ok": true }
-        )
     })
 
 }
