@@ -30,8 +30,9 @@ handler.on('issue_comment', function (event) {
                 repo: repoName,
                 issue_number: issueNumber,
                 labels: [commentBody],
-            }).then(({ data }) => {
+            }).then(({ data, err }) => {
                 console.log(`GitHub response: ${data}`)
+                console.log(err)
             }).catch((error) => {
                 console.error(error)
             });
