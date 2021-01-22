@@ -1,7 +1,7 @@
-const createHandler = require('github-webhook-handler')
-const handler = createHandler({ path: '/api/hook', secret: 'secret' })
-const { Octokit } = require("@octokit/rest");
+import createHandler from '../lib/gh-webhook-handler';
+import { Octokit } from "@octokit/rest";
 
+const handler = createHandler({ path: '/api/hook', secret: 'secret' })
 const octokit = new Octokit({
     auth: process.env.BOT_TOKEN,
 });
@@ -42,7 +42,7 @@ handler.on('issue_comment', async function (event) {
     console.log('done')
 })
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
     await handler(req, res, function (err) {
         console.log(err)
     })

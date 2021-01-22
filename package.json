@@ -20,6 +20,7 @@
   "homepage": "https://github.com/Lonor/OpsBot#readme",
   "dependencies": {
     "@octokit/rest": "^18.0.12",
+    "await-event-emitter": "^2.0.2",
     "github-webhook-handler": "^1.0.0"
   }
 }
