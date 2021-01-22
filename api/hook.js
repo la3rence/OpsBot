@@ -25,15 +25,16 @@ handler.on('issue_comment', function (event) {
         case 'created':
             console.log("create issue comment")
             console.log("call GitHub REST API")
-                (async () => {
-                    const resp = await octokit.issues.addLabels({
-                        owner: ownerName,
-                        repo: repoName,
-                        issue_number: issueNumber,
-                        labels: [commentBody],
-                    })
-                    console.log(`response: ${resp}`)
-                })();
+            const resp;
+            (async () => {
+                resp = await octokit.issues.addLabels({
+                    owner: ownerName,
+                    repo: repoName,
+                    issue_number: issueNumber,
+                    labels: [commentBody],
+                })
+            })();
+            console.log(`response: ${resp}`)
             break;
         case 'deleted':
             console.log("delete issue comment")
