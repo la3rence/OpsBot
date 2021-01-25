@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"OpsBot/utils"
 	"context"
 	"fmt"
 	"github.com/google/go-github/github"
@@ -9,6 +10,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
+)
+
+const (
+	LABEL = "/label"
 )
 
 func getGitHubClient() *github.Client {
@@ -33,6 +39,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("could not parse webhook: err=%s\n", err)
 		return
 	}
+	githubClient := getGitHubClient()
 	switch e := event.(type) {
 	case *github.PushEvent:
 		// this is a commit push, do something with it
@@ -48,20 +55,27 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	case *github.IssueCommentEvent:
 		fmt.Println("IssueCommentEvent: ")
 		fmt.Println(*e.Action)
+		commentBody := *e.GetComment().Body
 		action := *e.Action
-
 		if action == "edited" || action == "created" {
-			client := getGitHubClient()
-			labelName := *e.GetComment().Body
-			labels := []string{labelName}
-			issue, response, err := client.Issues.AddLabelsToIssue(context.Background(), *e.GetRepo().Owner.Login,
-				*e.GetRepo().Name,
-				*e.GetIssue().Number, labels)
-			if err != nil {
-				log.Print(err)
+			if strings.Contains(commentBody, LABEL) {
+				// 获取 /label 后的 字符串
+				wordArray := strings.Fields(commentBody)
+				labelIndex := utils.StringIndexOf(wordArray, LABEL)
+				labelName := wordArray[labelIndex+1]
+				if labelName != "" {
+					labels := []string{labelName}
+					issue, response, err := githubClient.Issues.AddLabelsToIssue(context.Background(), *e.GetRepo().Owner.Login,
+						*e.GetRepo().Name,
+						*e.GetIssue().Number, labels)
+					if err != nil {
+						log.Print(err)
+					}
+					log.Println(response, issue)
+					fmt.Fprintf(w, "ok")
+				}
 			}
-			log.Println(response, issue)
-			fmt.Fprintf(w, "ok")
+
 		}
 
 	default:
