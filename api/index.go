@@ -45,17 +45,15 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	case *github.PushEvent:
 		// this is a commit push, do something with it
 	case *github.PullRequestEvent:
-		// this is a pull request, do something with it
+		pullRequestEvent := *e
+		requestReview(githubClient, pullRequestEvent)
 	case *github.WatchEvent:
-		// https://developer.github.com/v3/activity/events/types/#watchevent
-		// someone starred our repository
 		if e.Action != nil && *e.Action == "starred" {
 			fmt.Printf("%s starred repository %s\n",
 				*e.Sender.Login, *e.Repo.FullName)
 		}
 	case *github.IssueCommentEvent:
-		fmt.Println("IssueCommentEvent: ")
-		fmt.Println(*e.Action)
+		fmt.Printf("IssueCommentEvent: %s\n", *e.Action)
 		commentBody := *e.GetComment().Body
 		action := *e.Action
 		if action == "edited" || action == "created" {
@@ -67,13 +65,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
 			}
 		}
-		fmt.Fprintf(w, "ok")
-
 	default:
 		log.Printf("unknown event type %s\n", github.WebHookType(r))
 		return
 	}
-	//fmt.Fprintf(w, "<h1>Hello from Go!</h1>")
+	_, err = fmt.Fprintf(w, "ok")
+	if err != nil {
+		log.Fatal("Write response error ", err)
+	}
 }
 
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
@@ -112,4 +111,23 @@ func removeLabelFromIssue(commentBody string, githubClient *github.Client, issue
 			log.Println(response)
 		}
 	}
+}
+
+func requestReview(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
+	action := *pullRequestEvent.Action
+	if action == "opened" || action == "reopened" {
+		reviewers, response, err := githubClient.PullRequests.RequestReviewers(context.Background(),
+			*pullRequestEvent.GetRepo().Owner.Login,
+			*pullRequestEvent.GetRepo().Name,
+			*pullRequestEvent.GetPullRequest().Number,
+			github.ReviewersRequest{
+				Reviewers: []string{*pullRequestEvent.GetRepo().Owner.Login},
+			},
+		)
+		if err != nil {
+			log.Print(err)
+		}
+		log.Println(response, reviewers)
+	}
+
 }
