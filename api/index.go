@@ -59,21 +59,24 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		action := *e.Action
 		if action == "edited" || action == "created" {
 			if strings.Contains(commentBody, LABEL) {
-				// 获取 /label 后的 字符串
+				// 获取 /label 后的 字符串，注意越界问题
 				wordArray := strings.Fields(commentBody)
 				labelIndex := utils.StringIndexOf(wordArray, LABEL)
-				labelName := wordArray[labelIndex+1]
-				if labelName != "" {
-					labels := []string{labelName}
-					issue, response, err := githubClient.Issues.AddLabelsToIssue(context.Background(), *e.GetRepo().Owner.Login,
-						*e.GetRepo().Name,
-						*e.GetIssue().Number, labels)
-					if err != nil {
-						log.Print(err)
+				if len(wordArray) > labelIndex+1 {
+					labelName := wordArray[labelIndex+1]
+					if labelName != "" {
+						labels := []string{labelName}
+						issue, response, err := githubClient.Issues.AddLabelsToIssue(context.Background(), *e.GetRepo().Owner.Login,
+							*e.GetRepo().Name,
+							*e.GetIssue().Number, labels)
+						if err != nil {
+							log.Print(err)
+						}
+						log.Println(response, issue)
+						fmt.Fprintf(w, "ok")
 					}
-					log.Println(response, issue)
-					fmt.Fprintf(w, "ok")
 				}
+
 			}
 
 		}
