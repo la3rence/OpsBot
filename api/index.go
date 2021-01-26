@@ -148,26 +148,31 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 	failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
 	if mergedBefore {
 		log.Printf(mergeComment)
-		sendComment(githubClient, owner, repo, number, &mergeComment)
+		sendComment(githubClient, owner, repo, number, mergeComment)
 	} else {
 		log.Printf("start to " + commitMsg + "\n")
-		mergeResult, _, _ := githubClient.PullRequests.Merge(ctx, owner, repo, number, commitMsg, nil)
-		log.Println(mergeResult)
-		merged := mergeResult.GetMerged()
-		if merged {
-			log.Printf(mergeComment)
-			sendComment(githubClient, owner, repo, number, &mergeComment)
+		mergeResult, _, err := githubClient.PullRequests.Merge(ctx, owner, repo, number, commitMsg, nil)
+		if err != nil {
+			log.Println(err)
+			sendComment(githubClient, owner, repo, number, err.Error())
 		} else {
-			sendComment(githubClient, owner, repo, number, &failMsg)
-			log.Printf(failMsg)
+			log.Println(mergeResult)
+			merged := mergeResult.GetMerged()
+			if merged {
+				log.Printf(mergeComment)
+				sendComment(githubClient, owner, repo, number, mergeComment)
+			} else {
+				sendComment(githubClient, owner, repo, number, failMsg)
+				log.Printf(failMsg)
+			}
 		}
 	}
 }
 
-func sendComment(githubClient *github.Client, owner string, repo string, number int, comment *string) *github.IssueComment {
+func sendComment(githubClient *github.Client, owner string, repo string, number int, comment string) *github.IssueComment {
 	createdComment, _, err := githubClient.Issues.CreateComment(
 		ctx, owner, repo, number, &github.IssueComment{
-			Body: comment,
+			Body: &comment,
 		})
 	if err == nil {
 		return createdComment
