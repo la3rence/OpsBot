@@ -8,7 +8,7 @@ Serverless + GitHub API 实现基于 Issue 的 Ops 机器人.
 
 1. 定制标签触发相应 Labels 的自动添加或移除 (已实现)
 2. 自动评论回复一些特定内容 (基础实现)
-3. 基于回复自动关闭一些 Issue 或 PR
+3. 基于回复自动关闭/开启 Issue 或 PR
 4. 结合第三方平台实现 CI
 5. 支持可配置多仓库使用 (可直接配置)
 
@@ -22,7 +22,7 @@ Payload URL (即 WebHook Serverless Function API) 为：`https://xxxx.vercel.app
 
 需要注册一个新 GitHub 账号并[创建 Personal Access Token](https://github.com/settings/tokens/new)
 
-然后以 `BOT_TOKEN` 作为将上述 Token 环境变量配置到生产环境.
+然后以 `BOT_TOKEN` 作为将上述 Token 环境变量配置到生产环境。需要邀请此账号作为仓库的 collaborator.
 
 更多参考请[联系作者](https://go.lawrenceli.me/contact)
 

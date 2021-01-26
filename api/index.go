@@ -17,6 +17,8 @@ const (
 	Label   = "/label"
 	UnLabel = "/un-label"
 	LGTM    = "/lgtm"
+	Close   = "/close"
+	Reopen  = "/reopen"
 )
 
 var ctx = context.Background()
@@ -55,9 +57,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				*e.Sender.Login, *e.Repo.FullName)
 		}
 	case *github.IssueCommentEvent:
-		fmt.Printf("IssueCommentEvent: %s\n", *e.Action)
-		commentBody := *e.GetComment().Body
-		action := *e.Action
+		action := e.GetAction()
+		fmt.Printf("IssueCommentEvent: %s\n", action)
+		commentBody := e.GetComment().GetBody()
 		if action == "edited" || action == "created" {
 			issueCommentEvent := *e
 			if strings.Contains(commentBody, Label) {
@@ -69,6 +71,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, LGTM) {
 				mergePullRequest(githubClient, issueCommentEvent)
 			}
+			if strings.Contains(commentBody, Close) {
+				closeOrOpenIssue(githubClient, issueCommentEvent, false)
+			}
+			if strings.Contains(commentBody, Reopen) {
+				closeOrOpenIssue(githubClient, issueCommentEvent, true)
+			}
 		}
 	default:
 		log.Printf("unknown event type %s\n", github.WebHookType(r))
@@ -76,9 +84,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err = fmt.Fprintf(w, "ok")
-	if err != nil {
-		log.Fatal("Write response error ", err)
-	}
 }
 
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
@@ -135,7 +140,6 @@ func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.
 		}
 		log.Println(response, reviewers)
 	}
-
 }
 
 func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
@@ -179,4 +183,23 @@ func sendComment(githubClient *github.Client, owner string, repo string, number 
 		return createdComment
 	}
 	return nil
+}
+
+func closeOrOpenIssue(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, open bool) {
+	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
+	repo := issueCommentEvent.GetRepo().GetName()
+	number := issueCommentEvent.GetIssue().GetNumber()
+	var state string
+	if open {
+		state = "open"
+	} else {
+		state = "closed"
+	}
+	edit, response, err := githubClient.Issues.Edit(ctx, owner, repo, number, &github.IssueRequest{
+		State: &state,
+	})
+	if err == nil {
+		log.Println(response)
+		log.Println(edit)
+	}
 }
