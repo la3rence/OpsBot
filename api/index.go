@@ -144,8 +144,8 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 	owner = issueCommentEvent.GetRepo().Owner.Name
 	repo = issueCommentEvent.GetRepo().Name
 	number = issueCommentEvent.GetIssue().Number
-	log.Println(owner, repo, number)
-	log.Println(*owner, *repo, *number)
+	log.Println("147", owner, repo, number)
+	log.Println("148", *owner, *repo, *number)
 	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(context.Background(), *owner, *repo, *number)
 	mergeComment := fmt.Sprintf("PR #%d was merged.", number)
 	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
