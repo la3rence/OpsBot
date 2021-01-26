@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	LABEL   = "/label"
-	UNLABEL = "/un-label"
+	Label   = "/label"
+	UnLabel = "/un-label"
+	LGTM    = "/lgtm"
 )
 
 func getGitHubClient() *github.Client {
@@ -58,11 +59,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		action := *e.Action
 		if action == "edited" || action == "created" {
 			issueCommentEvent := *e
-			if strings.Contains(commentBody, LABEL) {
+			if strings.Contains(commentBody, Label) {
 				addLabelsToIssue(commentBody, githubClient, issueCommentEvent)
 			}
-			if strings.Contains(commentBody, UNLABEL) {
+			if strings.Contains(commentBody, UnLabel) {
 				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
+			}
+			if strings.Contains(commentBody, LGTM) {
+				mergePullRequest(githubClient, issueCommentEvent)
 			}
 		}
 	default:
@@ -78,7 +82,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
 	// 获取 /label 后的 字符串，注意越界问题
 	wordArray := strings.Fields(commentBody)
-	labelIndex := utils.StringIndexOf(wordArray, LABEL)
+	labelIndex := utils.StringIndexOf(wordArray, Label)
 	if len(wordArray) > labelIndex+1 {
 		labelName := wordArray[labelIndex+1]
 		if labelName != "" {
@@ -96,7 +100,7 @@ func addLabelsToIssue(commentBody string, githubClient *github.Client, issueComm
 
 func removeLabelFromIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
 	wordArray := strings.Fields(commentBody)
-	unLabelIndex := utils.StringIndexOf(wordArray, UNLABEL)
+	unLabelIndex := utils.StringIndexOf(wordArray, UnLabel)
 	if len(wordArray) > unLabelIndex+1 {
 		unLabelName := wordArray[unLabelIndex+1]
 		if unLabelName != "" {
@@ -130,4 +134,43 @@ func requestReview(githubClient *github.Client, pullRequestEvent github.PullRequ
 		log.Println(response, reviewers)
 	}
 
+}
+
+func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	log.Println("start to merge PR")
+	background := context.Background()
+	owner := *issueCommentEvent.GetRepo().Owner.Name
+	repo := *issueCommentEvent.GetRepo().Name
+	number := *issueCommentEvent.GetIssue().Number
+	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(
+		context.Background(), owner, repo, number)
+	mergeComment := fmt.Sprintf("PR #%d was merged.", number)
+	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
+	failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
+	if mergedBefore {
+		log.Printf(mergeComment)
+		sendComment(githubClient, owner, repo, number, &mergeComment)
+	} else {
+		mergeResult, _, _ := githubClient.PullRequests.Merge(
+			background, owner, repo, number, commitMsg, nil)
+		merged := *mergeResult.Merged
+		if merged {
+			log.Printf(mergeComment)
+			sendComment(githubClient, owner, repo, number, &mergeComment)
+		} else {
+			sendComment(githubClient, owner, repo, number, &failMsg)
+			log.Fatalf(failMsg)
+		}
+	}
+}
+
+func sendComment(githubClient *github.Client, owner string, repo string, number int, comment *string) *github.IssueComment {
+	createdComment, _, err := githubClient.Issues.CreateComment(
+		context.Background(), owner, repo, number, &github.IssueComment{
+			Body: comment,
+		})
+	if err == nil {
+		return createdComment
+	}
+	return nil
 }
