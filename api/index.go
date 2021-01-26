@@ -138,11 +138,13 @@ func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.
 }
 
 func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	owner := issueCommentEvent.GetRepo().Owner.Name
-	repo := issueCommentEvent.GetRepo().Name
-	number := issueCommentEvent.GetIssue().Number
-	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(
-		context.Background(), *owner, *repo, *number)
+	owner := new(string)
+	repo := new(string)
+	number := new(int)
+	owner = issueCommentEvent.GetRepo().Owner.Name
+	repo = issueCommentEvent.GetRepo().Name
+	number = issueCommentEvent.GetIssue().Number
+	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(context.Background(), *owner, *repo, *number)
 	mergeComment := fmt.Sprintf("PR #%d was merged.", number)
 	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
 	failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
