@@ -138,7 +138,6 @@ func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.
 }
 
 func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	background := context.Background()
 	owner := *issueCommentEvent.GetRepo().Owner.Name
 	repo := *issueCommentEvent.GetRepo().Name
 	number := *issueCommentEvent.GetIssue().Number
@@ -153,7 +152,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 	} else {
 		log.Printf("start to " + commitMsg + "\n")
 		mergeResult, _, _ := githubClient.PullRequests.Merge(
-			background, owner, repo, number, commitMsg, nil)
+			context.Background(), owner, repo, number, commitMsg, nil)
 		merged := *mergeResult.Merged
 		if merged {
 			log.Printf(mergeComment)
