@@ -19,9 +19,10 @@ const (
 	LGTM    = "/lgtm"
 )
 
+var ctx = context.Background()
+
 func getGitHubClient() *github.Client {
 	token := os.Getenv("BOT_TOKEN")
-	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
@@ -88,7 +89,7 @@ func addLabelsToIssue(commentBody string, githubClient *github.Client, issueComm
 		labelName := wordArray[labelIndex+1]
 		if labelName != "" {
 			labels := []string{labelName}
-			issue, response, err := githubClient.Issues.AddLabelsToIssue(context.Background(), *issueCommentEvent.GetRepo().Owner.Login,
+			issue, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
 				*issueCommentEvent.GetRepo().Name,
 				*issueCommentEvent.GetIssue().Number, labels)
 			if err != nil {
@@ -105,7 +106,7 @@ func removeLabelFromIssue(commentBody string, githubClient *github.Client, issue
 	if len(wordArray) > unLabelIndex+1 {
 		unLabelName := wordArray[unLabelIndex+1]
 		if unLabelName != "" {
-			response, err := githubClient.Issues.RemoveLabelForIssue(context.Background(),
+			response, err := githubClient.Issues.RemoveLabelForIssue(ctx,
 				*issueCommentEvent.GetRepo().Owner.Login,
 				*issueCommentEvent.GetRepo().Name,
 				*issueCommentEvent.GetIssue().Number,
@@ -121,7 +122,7 @@ func removeLabelFromIssue(commentBody string, githubClient *github.Client, issue
 func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
 	action := *pullRequestEvent.Action
 	if action == "opened" || action == "reopened" {
-		reviewers, response, err := githubClient.PullRequests.RequestReviewers(context.Background(),
+		reviewers, response, err := githubClient.PullRequests.RequestReviewers(ctx,
 			*pullRequestEvent.GetRepo().Owner.Login,
 			*pullRequestEvent.GetRepo().Name,
 			*pullRequestEvent.GetPullRequest().Number,
@@ -141,7 +142,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 	owner := issueCommentEvent.GetRepo().GetOwner().GetName()
 	repo := issueCommentEvent.GetRepo().GetName()
 	number := issueCommentEvent.GetIssue().GetNumber()
-	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(context.Background(), owner, repo, number)
+	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(ctx, owner, repo, number)
 	mergeComment := fmt.Sprintf("PR #%d was merged.", number)
 	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
 	failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
@@ -151,7 +152,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 	} else {
 		log.Printf("start to " + commitMsg + "\n")
 		var mergeResult *github.PullRequestMergeResult
-		mergeResult, _, _ = githubClient.PullRequests.Merge(context.Background(), owner, repo, number, commitMsg, nil)
+		mergeResult, _, _ = githubClient.PullRequests.Merge(ctx, owner, repo, number, commitMsg, nil)
 		merged := *mergeResult.Merged
 		if merged {
 			log.Printf(mergeComment)
@@ -165,7 +166,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 
 func sendComment(githubClient *github.Client, owner string, repo string, number int, comment *string) *github.IssueComment {
 	createdComment, _, err := githubClient.Issues.CreateComment(
-		context.Background(), owner, repo, number, &github.IssueComment{
+		ctx, owner, repo, number, &github.IssueComment{
 			Body: comment,
 		})
 	if err == nil {
