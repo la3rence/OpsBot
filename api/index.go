@@ -151,7 +151,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 		log.Printf(mergeComment)
 		sendComment(githubClient, owner, repo, number, &mergeComment)
 	} else {
-		log.Printf("start to " + mergeComment + "\n")
+		log.Printf("start to " + commitMsg + "\n")
 		mergeResult, _, _ := githubClient.PullRequests.Merge(
 			background, owner, repo, number, commitMsg, nil)
 		merged := *mergeResult.Merged
