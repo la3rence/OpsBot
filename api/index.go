@@ -47,7 +47,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		// this is a commit push, do something with it
 	case *github.PullRequestEvent:
 		pullRequestEvent := *e
-		requestReview(githubClient, pullRequestEvent)
+		requestReviewIfPROpen(githubClient, pullRequestEvent)
 	case *github.WatchEvent:
 		if e.Action != nil && *e.Action == "starred" {
 			fmt.Printf("%s starred repository %s\n",
@@ -71,6 +71,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		log.Printf("unknown event type %s\n", github.WebHookType(r))
+		_, err = fmt.Fprintf(w, "ok")
 		return
 	}
 	_, err = fmt.Fprintf(w, "ok")
@@ -117,7 +118,7 @@ func removeLabelFromIssue(commentBody string, githubClient *github.Client, issue
 	}
 }
 
-func requestReview(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
+func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
 	action := *pullRequestEvent.Action
 	if action == "opened" || action == "reopened" {
 		reviewers, response, err := githubClient.PullRequests.RequestReviewers(context.Background(),
@@ -137,11 +138,11 @@ func requestReview(githubClient *github.Client, pullRequestEvent github.PullRequ
 }
 
 func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	log.Println("start to merge PR")
 	background := context.Background()
 	owner := *issueCommentEvent.GetRepo().Owner.Name
 	repo := *issueCommentEvent.GetRepo().Name
 	number := *issueCommentEvent.GetIssue().Number
+	log.Println("start to merge PR")
 	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(
 		context.Background(), owner, repo, number)
 	mergeComment := fmt.Sprintf("PR #%d was merged.", number)
@@ -159,7 +160,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 			sendComment(githubClient, owner, repo, number, &mergeComment)
 		} else {
 			sendComment(githubClient, owner, repo, number, &failMsg)
-			log.Fatalf(failMsg)
+			log.Printf(failMsg)
 		}
 	}
 }
