@@ -138,28 +138,26 @@ func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.
 }
 
 func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	owner := issueCommentEvent.GetRepo().GetOwner().Name
-	repo := issueCommentEvent.GetRepo().Name
-	number := issueCommentEvent.GetIssue().Number
-	log.Println("144", owner, repo, number)
-	log.Println("145", *owner, *repo, *number)
-	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(context.Background(), *owner, *repo, *number)
+	owner := issueCommentEvent.GetRepo().GetOwner().GetName()
+	repo := issueCommentEvent.GetRepo().GetName()
+	number := issueCommentEvent.GetIssue().GetNumber()
+	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(context.Background(), owner, repo, number)
 	mergeComment := fmt.Sprintf("PR #%d was merged.", number)
 	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
 	failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
 	if mergedBefore {
 		log.Printf(mergeComment)
-		sendComment(githubClient, *owner, *repo, *number, &mergeComment)
+		sendComment(githubClient, owner, repo, number, &mergeComment)
 	} else {
 		log.Printf("start to " + commitMsg + "\n")
 		mergeResult, _, _ := githubClient.PullRequests.Merge(
-			context.Background(), *owner, *repo, *number, commitMsg, nil)
+			context.Background(), owner, repo, number, commitMsg, nil)
 		merged := *mergeResult.Merged
 		if merged {
 			log.Printf(mergeComment)
-			sendComment(githubClient, *owner, *repo, *number, &mergeComment)
+			sendComment(githubClient, owner, repo, number, &mergeComment)
 		} else {
-			sendComment(githubClient, *owner, *repo, *number, &failMsg)
+			sendComment(githubClient, owner, repo, number, &failMsg)
 			log.Printf(failMsg)
 		}
 	}
