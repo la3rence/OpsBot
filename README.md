@@ -1,6 +1,6 @@
 # OpsBot 🤖️
 
-Serverless + GitHub API 实现基于 Issue 的 Ops 机器人.
+Serverless + GitHub API 实现基于 Issue / PR 的 Ops 机器人.
 
 类似于 Kubernetes Prow 机器人的白嫖实现。
 
@@ -12,6 +12,18 @@ Serverless + GitHub API 实现基于 Issue 的 Ops 机器人.
 4. 结合第三方平台实现 CI
 5. 支持可配置多仓库使用 (可直接配置)
 
+## 已实现的功能
+
+`/label [标签]`       添加一个 label 到某个 issue / PR
+
+`/un-label [移除标签]` 移除一个 label 到某个 issue / PR
+
+`/close`              关闭 issue / PR
+
+`/reopen`             重新开启 issue / PR
+
+`/lgtm` 或 `/approve` 合并某个 PR
+
 ## 配置方式
 
 GitHub 仓库 Settings -> WebHook: 新增一个 WebHook，勾选 application/json, all event.
@@ -20,7 +32,7 @@ GitHub 仓库 Settings -> WebHook: 新增一个 WebHook，勾选 application/jso
 
 Payload URL (即 WebHook Serverless Function API) 为：`https://xxxx.vercel.app/api/index`
 
-需要注册一个新 GitHub 账号并[创建 Personal Access Token](https://github.com/settings/tokens/new)
+需注册一个新 GitHub 账号作为机器人并[创建 Personal Access Token](https://github.com/settings/tokens/new)
 
 然后以 `BOT_TOKEN` 作为将上述 Token 环境变量配置到生产环境。需要邀请此账号作为仓库的 collaborator.
 
