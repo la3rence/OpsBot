@@ -19,6 +19,7 @@ const (
 	LGTM    = "/lgtm"
 	Close   = "/close"
 	Reopen  = "/reopen"
+	Approve = "/approve"
 )
 
 var ctx = context.Background()
@@ -68,7 +69,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, UnLabel) {
 				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
 			}
-			if strings.Contains(commentBody, LGTM) {
+			if strings.Contains(commentBody, LGTM) || strings.Contains(commentBody, Approve) {
 				mergePullRequest(githubClient, issueCommentEvent)
 			}
 			if strings.Contains(commentBody, Close) {
@@ -87,39 +88,43 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	// 获取 /label 后的 字符串，注意越界问题
 	wordArray := strings.Fields(commentBody)
 	labelIndex := utils.StringIndexOf(wordArray, Label)
-	if len(wordArray) > labelIndex+1 {
-		labelName := wordArray[labelIndex+1]
-		if labelName != "" {
-			labels := []string{labelName}
-			issue, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
-				*issueCommentEvent.GetRepo().Name,
-				*issueCommentEvent.GetIssue().Number, labels)
-			if err != nil {
-				log.Print(err)
+	for i := 0; i < len(labelIndex); i++ {
+		if len(wordArray) > labelIndex[i]+1 {
+			labelName := wordArray[labelIndex[i]+1]
+			if labelName != "" {
+				labels := []string{labelName}
+				issue, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
+					*issueCommentEvent.GetRepo().Name,
+					*issueCommentEvent.GetIssue().Number, labels)
+				if err != nil {
+					log.Print(err)
+				}
+				log.Println(response, issue)
 			}
-			log.Println(response, issue)
 		}
 	}
+
 }
 
 func removeLabelFromIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
 	wordArray := strings.Fields(commentBody)
 	unLabelIndex := utils.StringIndexOf(wordArray, UnLabel)
-	if len(wordArray) > unLabelIndex+1 {
-		unLabelName := wordArray[unLabelIndex+1]
-		if unLabelName != "" {
-			response, err := githubClient.Issues.RemoveLabelForIssue(ctx,
-				*issueCommentEvent.GetRepo().Owner.Login,
-				*issueCommentEvent.GetRepo().Name,
-				*issueCommentEvent.GetIssue().Number,
-				unLabelName)
-			if err != nil {
-				log.Print(err)
+	for i := 0; i < len(unLabelIndex); i++ {
+		if len(wordArray) > unLabelIndex[i]+1 {
+			unLabelName := wordArray[unLabelIndex[i]+1]
+			if unLabelName != "" {
+				response, err := githubClient.Issues.RemoveLabelForIssue(ctx,
+					*issueCommentEvent.GetRepo().Owner.Login,
+					*issueCommentEvent.GetRepo().Name,
+					*issueCommentEvent.GetIssue().Number,
+					unLabelName)
+				if err != nil {
+					log.Print(err)
+				}
+				log.Println(response)
 			}
-			log.Println(response)
 		}
 	}
 }
