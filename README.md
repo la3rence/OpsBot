@@ -16,7 +16,7 @@ Serverless + GitHub API 实现基于 Issue / PR 的 Ops 机器人.
 
 `/label [标签]`       添加一个 label 到某个 issue / PR
 
-`/un-label [移除标签]` 移除一个 label 到某个 issue / PR
+`/un-label [移除标签]` 移除某个 issue / PR 的 label
 
 `/close`              关闭 issue / PR
 
