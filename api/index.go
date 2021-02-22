@@ -114,10 +114,10 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 				log.Println("label: approved ")
 			}
 		} else {
-			log.Println(err)
+			log.Println("SubmitReview Error" + err.Error())
 		}
 	} else {
-		log.Println(err)
+		log.Println("CreateReview Error" + err.Error())
 	}
 }
 
