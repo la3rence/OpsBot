@@ -69,8 +69,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, UnLabel) {
 				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
 			}
-			if strings.Contains(commentBody, LGTM) || strings.Contains(commentBody, Approve) {
+			if strings.Contains(commentBody, LGTM) {
 				mergePullRequest(githubClient, issueCommentEvent)
+			}
+			if strings.Contains(commentBody, Approve) {
+				approvePullRequest(githubClient, issueCommentEvent)
 			}
 			if strings.Contains(commentBody, Close) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, false)
@@ -85,6 +88,41 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err = fmt.Fprintf(w, "ok")
+}
+
+func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
+	approveEventName := "APPROVE"
+	loginOwner := event.GetRepo().GetOwner().GetLogin()
+	repoName := event.GetRepo().GetName()
+	issueNumber := event.GetIssue().GetNumber()
+	review, _, err := client.PullRequests.CreateReview(ctx, loginOwner, repoName, issueNumber,
+		&github.PullRequestReviewRequest{
+			Event: &approveEventName,
+		})
+	if err == nil {
+		commitID := review.GetCommitID()
+		body := review.GetBody()
+		submitReview, _, err := client.PullRequests.SubmitReview(ctx, loginOwner, repoName, issueNumber,
+			review.GetID(),
+			&github.PullRequestReviewRequest{
+				CommitID: &commitID,
+				Body:     &body,
+				Event:    &approveEventName,
+			},
+		)
+		if err == nil {
+			log.Println(submitReview)
+			labels := []string{"approved"}
+			_, _, err := client.Issues.AddLabelsToIssue(ctx, loginOwner, repoName, issueNumber, labels)
+			if err == nil {
+				log.Println("label: approved ")
+			}
+		} else {
+			log.Println(err)
+		}
+	} else {
+		log.Println(err)
+	}
 }
 
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
