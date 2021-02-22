@@ -111,7 +111,7 @@ func removeLabelFromIssue(commentBody string, githubClient *github.Client, issue
 	wordArray := strings.Fields(commentBody)
 	unLabelIndex := utils.StringIndexOf(wordArray, UnLabel)
 	for i := 0; i < len(unLabelIndex); i++ {
-		param, err := utils.GetTagNextOneParam(commentBody, Label)
+		param, err := utils.GetTagNextOneParam(commentBody, UnLabel)
 		if err == nil {
 			response, githubErr := githubClient.Issues.RemoveLabelForIssue(ctx,
 				*issueCommentEvent.GetRepo().Owner.Login,
