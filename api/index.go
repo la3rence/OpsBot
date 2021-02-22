@@ -100,14 +100,10 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 			Event: &approveEventName,
 		})
 	if err == nil {
-		commitID := review.GetCommitID()
-		body := review.GetBody()
 		submitReview, _, err := client.PullRequests.SubmitReview(ctx, loginOwner, repoName, issueNumber,
 			review.GetID(),
 			&github.PullRequestReviewRequest{
-				CommitID: &commitID,
-				Body:     &body,
-				Event:    &approveEventName,
+				Event: &approveEventName,
 			},
 		)
 		if err == nil {
