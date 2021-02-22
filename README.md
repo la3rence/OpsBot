@@ -1,3 +1,5 @@
+[![Test](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml/badge.svg)](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml)
+
 # OpsBot 🤖️
 
 Serverless + GitHub API 实现基于 Issue / PR 的 Ops 机器人.
