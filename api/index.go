@@ -100,22 +100,15 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 			Event: &approveEventName,
 		})
 	if err == nil {
-		submitReview, _, err := client.PullRequests.SubmitReview(ctx, loginOwner, repoName, issueNumber,
+		submitReview, _, _ := client.PullRequests.SubmitReview(ctx, loginOwner, repoName, issueNumber,
 			review.GetID(),
 			&github.PullRequestReviewRequest{
 				Event: &approveEventName,
 			},
 		)
-		if err == nil {
-			log.Println(submitReview)
-			labels := []string{"approved"}
-			_, _, err := client.Issues.AddLabelsToIssue(ctx, loginOwner, repoName, issueNumber, labels)
-			if err == nil {
-				log.Println("label: approved ")
-			}
-		} else {
-			log.Println("SubmitReview Error" + err.Error())
-		}
+		log.Println(submitReview)
+		labels := []string{"approved"}
+		_, _, _ = client.Issues.AddLabelsToIssue(ctx, loginOwner, repoName, issueNumber, labels)
 	} else {
 		log.Println("CreateReview Error" + err.Error())
 	}
