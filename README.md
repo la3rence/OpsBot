@@ -1,4 +1,5 @@
 [![Test](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml/badge.svg)](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml)
+[![codecov](https://codecov.io/gh/Lonor/OpsBot/branch/main/graph/badge.svg?token=H16BEN675E)](https://codecov.io/gh/Lonor/OpsBot)
 
 # OpsBot 🤖️
 
