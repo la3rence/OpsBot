@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -22,16 +21,6 @@ func StringIndexOf(originalArray []string, wordToFind interface{}) []int {
 	return indexArray
 }
 
-func StringToInt32(numberString string) (int32, error) {
-	parseNumber, err := strconv.ParseInt(numberString, 10, 32)
-	if err == nil {
-		return int32(parseNumber), nil
-	} else {
-		return 0, err
-	}
-}
-
-// 封装：获取 /tag 后一位字符串
 func GetTagNextOneParam(originalMessage string, tagName string) (nextString string, err error) {
 	wordArray := strings.Fields(originalMessage)
 	indexes := StringIndexOf(wordArray, tagName)
@@ -40,4 +29,16 @@ func GetTagNextOneParam(originalMessage string, tagName string) (nextString stri
 		return nextString, nil
 	}
 	return nextString, fmt.Errorf("param of %s required", tagName)
+}
+
+func GetTagNextAllParams(originalMessage string, tagName string) (params []string) {
+	wordArray := strings.Fields(originalMessage)
+	tagIndexes := StringIndexOf(wordArray, tagName)
+	for _, v := range tagIndexes {
+		if v+1 < len(wordArray) {
+			param := wordArray[v+1]
+			params = append(params, param)
+		}
+	}
+	return
 }

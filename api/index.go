@@ -69,8 +69,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, UnLabel) {
 				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
 			}
-			if strings.Contains(commentBody, LGTM) || strings.Contains(commentBody, Approve) {
+			if strings.Contains(commentBody, LGTM) {
 				mergePullRequest(githubClient, issueCommentEvent)
+			}
+			if strings.Contains(commentBody, Approve) {
+				approvePullRequest(githubClient, issueCommentEvent)
 			}
 			if strings.Contains(commentBody, Close) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, false)
@@ -87,44 +90,50 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	_, err = fmt.Fprintf(w, "ok")
 }
 
-func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	wordArray := strings.Fields(commentBody)
-	labelIndex := utils.StringIndexOf(wordArray, Label)
-	for i := 0; i < len(labelIndex); i++ {
-		param, err := utils.GetTagNextOneParam(commentBody, Label)
-		if err == nil {
-			labels := []string{param}
-			issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
-				*issueCommentEvent.GetRepo().Name,
-				*issueCommentEvent.GetIssue().Number, labels)
-			if githubErr != nil {
-				log.Print(githubErr)
-			}
-			log.Println(response, issue)
-		} else {
-			log.Println(err)
-		}
+func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
+	approveEventName := "APPROVE"
+	loginOwner := event.GetRepo().GetOwner().GetLogin()
+	repoName := event.GetRepo().GetName()
+	issueNumber := event.GetIssue().GetNumber()
+	review, _, err := client.PullRequests.CreateReview(ctx, loginOwner, repoName, issueNumber,
+		&github.PullRequestReviewRequest{
+			Event: &approveEventName,
+		})
+	if err == nil {
+		submitReview, _, _ := client.PullRequests.SubmitReview(ctx, loginOwner, repoName, issueNumber,
+			review.GetID(),
+			&github.PullRequestReviewRequest{
+				Event: &approveEventName,
+			},
+		)
+		log.Println(submitReview)
+		labels := []string{"approved"}
+		_, _, _ = client.Issues.AddLabelsToIssue(ctx, loginOwner, repoName, issueNumber, labels)
+	} else {
+		log.Println("CreateReview Error" + err.Error())
 	}
 }
 
+func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	params := utils.GetTagNextAllParams(commentBody, Label)
+	issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
+		*issueCommentEvent.GetRepo().Name,
+		*issueCommentEvent.GetIssue().Number, params)
+	log.Println(response, issue, githubErr)
+}
+
 func removeLabelFromIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	wordArray := strings.Fields(commentBody)
-	unLabelIndex := utils.StringIndexOf(wordArray, UnLabel)
-	for i := 0; i < len(unLabelIndex); i++ {
-		param, err := utils.GetTagNextOneParam(commentBody, UnLabel)
-		if err == nil {
-			response, githubErr := githubClient.Issues.RemoveLabelForIssue(ctx,
-				*issueCommentEvent.GetRepo().Owner.Login,
-				*issueCommentEvent.GetRepo().Name,
-				*issueCommentEvent.GetIssue().Number,
-				param)
-			if githubErr != nil {
-				log.Print(githubErr)
-			}
-			log.Println(response)
-		} else {
-			log.Println(err)
+	params := utils.GetTagNextAllParams(commentBody, UnLabel)
+	for _, param := range params {
+		response, githubErr := githubClient.Issues.RemoveLabelForIssue(ctx,
+			*issueCommentEvent.GetRepo().Owner.Login,
+			*issueCommentEvent.GetRepo().Name,
+			*issueCommentEvent.GetIssue().Number,
+			param)
+		if githubErr != nil {
+			log.Print(githubErr)
 		}
+		log.Println(response)
 	}
 }
 
