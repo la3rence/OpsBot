@@ -1,3 +1,6 @@
+[![Test](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml/badge.svg)](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml)
+[![codecov](https://codecov.io/gh/Lonor/OpsBot/branch/main/graph/badge.svg?token=H16BEN675E)](https://codecov.io/gh/Lonor/OpsBot)
+
 # OpsBot 🤖️
 
 Serverless + GitHub API 实现基于 Issue / PR 的 Ops 机器人.
@@ -22,7 +25,9 @@ Serverless + GitHub API 实现基于 Issue / PR 的 Ops 机器人.
 
 `/reopen`             重新开启 issue / PR
 
-`/lgtm` 或 `/approve` 合并某个 PR
+`/approve`            审核通过某个 PR
+
+`/lgtm`               合并某个 PR
 
 ## 配置方式
 
