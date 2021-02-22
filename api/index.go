@@ -126,43 +126,25 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 }
 
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	wordArray := strings.Fields(commentBody)
-	labelIndex := utils.StringIndexOf(wordArray, Label)
-	for i := 0; i < len(labelIndex); i++ {
-		param, err := utils.GetTagNextOneParam(commentBody, Label)
-		if err == nil {
-			labels := []string{param}
-			issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
-				*issueCommentEvent.GetRepo().Name,
-				*issueCommentEvent.GetIssue().Number, labels)
-			if githubErr != nil {
-				log.Print(githubErr)
-			}
-			log.Println(response, issue)
-		} else {
-			log.Println(err)
-		}
-	}
+	params := utils.GetTagNextAllParams(commentBody, Label)
+	issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
+		*issueCommentEvent.GetRepo().Name,
+		*issueCommentEvent.GetIssue().Number, params)
+	log.Println(response, issue, githubErr)
 }
 
 func removeLabelFromIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
-	wordArray := strings.Fields(commentBody)
-	unLabelIndex := utils.StringIndexOf(wordArray, UnLabel)
-	for i := 0; i < len(unLabelIndex); i++ {
-		param, err := utils.GetTagNextOneParam(commentBody, UnLabel)
-		if err == nil {
-			response, githubErr := githubClient.Issues.RemoveLabelForIssue(ctx,
-				*issueCommentEvent.GetRepo().Owner.Login,
-				*issueCommentEvent.GetRepo().Name,
-				*issueCommentEvent.GetIssue().Number,
-				param)
-			if githubErr != nil {
-				log.Print(githubErr)
-			}
-			log.Println(response)
-		} else {
-			log.Println(err)
+	params := utils.GetTagNextAllParams(commentBody, UnLabel)
+	for _, param := range params {
+		response, githubErr := githubClient.Issues.RemoveLabelForIssue(ctx,
+			*issueCommentEvent.GetRepo().Owner.Login,
+			*issueCommentEvent.GetRepo().Name,
+			*issueCommentEvent.GetIssue().Number,
+			param)
+		if githubErr != nil {
+			log.Print(githubErr)
 		}
+		log.Println(response)
 	}
 }
 

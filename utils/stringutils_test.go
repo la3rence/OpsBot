@@ -12,22 +12,6 @@ var (
 	tagParam        = "object"
 )
 
-func TestStringToInt32(t *testing.T) {
-
-	t.Run("NormalNumber", func(t *testing.T) {
-		normalNumber := "1"
-		if resultInt, err := StringToInt32(normalNumber); resultInt != 1 && err == nil {
-			t.Errorf("The String %s expected be int32 %s, but %d got", normalNumber, normalNumber, resultInt)
-		}
-	})
-
-	t.Run("UnexpectedString", func(t *testing.T) {
-		if _, err := StringToInt32("not a number"); err == nil {
-			t.Errorf("The String must be the number string, otherwise the error wouldn't be nil")
-		}
-	})
-}
-
 func TestStringIndexOf(t *testing.T) {
 	// the string word must exists in the array.
 	indexes := StringIndexOf([]string{"x", tagName, "y"}, tagName)
@@ -68,5 +52,43 @@ func TestGetTagNextOneParam(t *testing.T) {
 	}
 	if err != nil {
 		t.Errorf(err.Error())
+	}
+}
+
+func stringSliceEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	if (a == nil) != (b == nil) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func TestGetTagNextAllParams(t *testing.T) {
+	// use table-driven tests
+	cases := []struct {
+		Name          string
+		Message       string
+		ExpectedLabel []string
+	}{
+		{"single tag with param", "/tag a", []string{"a"}},
+		{"two same tags with different params", "/tag a /tag b", []string{"a", "b"}},
+		{"two same tags but one lack of param", "/tag a /tag", []string{"a"}},
+		{"two different tags", "/tag a /untag b", []string{"a"}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Name, func(t *testing.T) {
+			params := GetTagNextAllParams(c.Message, tagName)
+			if !stringSliceEqual(params, c.ExpectedLabel) {
+				t.Errorf("The param after the tag expected to be %s, but %s got", c.ExpectedLabel, params)
+			}
+		})
 	}
 }
