@@ -168,7 +168,9 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 		sendComment(githubClient, owner, repo, number, mergeComment)
 	} else {
 		log.Printf("start to " + commitMsg + "\n")
-		mergeResult, _, err := githubClient.PullRequests.Merge(ctx, owner, repo, number, commitMsg, nil)
+		mergeResult, _, err := githubClient.PullRequests.Merge(ctx, owner, repo, number, commitMsg, &github.PullRequestOptions{
+			MergeMethod: "rebase",
+		})
 		if err != nil {
 			log.Println(err)
 			sendComment(githubClient, owner, repo, number, err.Error())
