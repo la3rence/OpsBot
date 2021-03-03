@@ -63,23 +63,23 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		commentBody := e.GetComment().GetBody()
 		if action == "edited" || action == "created" {
 			issueCommentEvent := *e
-			if strings.Contains(commentBody, Label) {
-				addLabelsToIssue(commentBody, githubClient, issueCommentEvent)
-			}
-			if strings.Contains(commentBody, UnLabel) {
-				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
-			}
-			if strings.Contains(commentBody, LGTM) {
-				mergePullRequest(githubClient, issueCommentEvent)
-			}
-			if strings.Contains(commentBody, Approve) {
-				approvePullRequest(githubClient, issueCommentEvent)
-			}
 			if strings.Contains(commentBody, Close) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, false)
 			}
 			if strings.Contains(commentBody, Reopen) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, true)
+			}
+			if strings.Contains(commentBody, Approve) {
+				approvePullRequest(githubClient, issueCommentEvent)
+			}
+			if strings.Contains(commentBody, LGTM) {
+				mergePullRequest(githubClient, issueCommentEvent)
+			}
+			if strings.Contains(commentBody, Label) {
+				addLabelsToIssue(commentBody, githubClient, issueCommentEvent)
+			}
+			if strings.Contains(commentBody, UnLabel) {
+				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
 			}
 		}
 	default:
