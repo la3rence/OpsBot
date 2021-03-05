@@ -3,44 +3,36 @@
 
 # OpsBot 🤖️
 
-Serverless + GitHub API 实现基于 Issue / PR 的 Ops 机器人.
+A robot based on GitHub sdk and [Vercel's Serverless Function (Go)](https://vercel.com/docs/runtimes#official-runtimes/go).
+It acts like the [Kubernetes Prow Robot](https://github.com/k8s-ci-robot). The robot manages your GitHub repo's issues and
+pull requests by the content of comments that the user sends.
 
-类似于 Kubernetes Prow 机器人的白嫖实现。
+This project is just getting start and is a toy tool now. For the effectiveness, you can check out any issue or pr from this repo.
+If you're interested in this stuff as well, issues or pull requests are welcomed.
 
-目前初始化阶段。开发路线图：
+## Roadmap / Usage
 
-1. 定制标签触发相应 Labels 的自动添加或移除 (已实现)
-2. 自动评论回复一些特定内容 (基础实现)
-3. 基于回复自动关闭/开启 Issue 或 PR
-4. 结合第三方平台实现 CI
-5. 支持可配置多仓库使用 (可直接配置)
+- [x] `/label [label-name]`    Add a label to the issue / PR
+- [x] `/un-label [label-name]` Remove label from the issue / PR
+- [x] `/close`                 Close issue / PR
+- [x] `/reopen`                Reopen issue / PR
+- [x] `/approve`               Approve the PR
+- [x] `/lgtm`                  Merge the PR with rebase
+- [ ] `/test`                  Test the PR with continuous integration
+- [ ] `/assign [username]`     Assign the issue / PR to the user
 
-## 已实现的功能
+## Configuration
 
-`/label [标签]`       添加一个 label 到某个 issue / PR
+[Deploy this on Vercel](https://go.lawrenceli.me/deploy-opsbot)
 
-`/un-label [移除标签]` 移除某个 issue / PR 的 label
+Go to GitHub Repository -> Settings -> WebHook. Add a new WebHook, check `application/json` 
+and choose all events(or events you care about). Input Payload URL (WebHook Serverless Function API), 
+such as `https://your-username.vercel.app/api/index` 
 
-`/close`              关闭 issue / PR
+Register a new GitHub account (as the robot) and [create its personal access token](https://github.com/settings/tokens/new)
+Don't forget to config the `BOT_TOKEN` as the production environment variable and invite it as your repo's collaborator.
 
-`/reopen`             重新开启 issue / PR
+For more information you can [contact the author](https://go.lawrenceli.me/contact)
 
-`/approve`            审核通过某个 PR
-
-`/lgtm`               合并某个 PR
-
-## 配置方式
-
-GitHub 仓库 Settings -> WebHook: 新增一个 WebHook，勾选 application/json, all event.
-
-[使用 Vercel 部署](https://go.lawrenceli.me/deploy-opsbot)
-
-Payload URL (即 WebHook Serverless Function API) 为：`https://xxxx.vercel.app/api/index`
-
-需注册一个新 GitHub 账号作为机器人并[创建 Personal Access Token](https://github.com/settings/tokens/new)
-
-然后以 `BOT_TOKEN` 作为将上述 Token 环境变量配置到生产环境。需要邀请此账号作为仓库的 collaborator.
-
-更多参考请[联系作者](https://go.lawrenceli.me/contact)
-
-@MIT 2021 Lawrence
+## License
+MIT
