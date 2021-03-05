@@ -160,7 +160,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 	repo := issueCommentEvent.GetRepo().GetName()
 	number := issueCommentEvent.GetIssue().GetNumber()
 	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(ctx, owner, repo, number)
-	mergeComment := fmt.Sprintf("PR #%d was merged.", number)
+	mergeComment := fmt.Sprintf("PR #%d was merged (with rebase). Thanks for your contribution.", number)
 	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
 	failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
 	if mergedBefore {
