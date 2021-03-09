@@ -3,8 +3,8 @@
 go test ./...
 RESULT=$?
 if [[ $RESULT != 0 ]]; then
-    echo "REJECTING COMMIT (test failed with status: $RESULT)"
-    exit 1;
+  echo "REJECTING COMMIT (test failed with status: $RESULT)"
+  exit 1
 fi
 
 go fmt ./...
