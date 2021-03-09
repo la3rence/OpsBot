@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -23,6 +22,7 @@ const (
 )
 
 var ctx = context.Background()
+var secret = os.Getenv("WEBHOOK_SECRET")
 
 func getGitHubClient() *github.Client {
 	token := os.Getenv("BOT_TOKEN")
@@ -33,16 +33,18 @@ func getGitHubClient() *github.Client {
 	return github.NewClient(tc)
 }
 
+// this Handler used to be the serverless function
 func Handler(w http.ResponseWriter, r *http.Request) {
-	payload, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Printf("error reading request body: err=%s\n", err)
+	payload, validateErr := github.ValidatePayload(r, []byte(secret))
+	if validateErr != nil {
+		http.Error(w, "The GitHub signature header is invalid.", http.StatusUnauthorized)
+		log.Printf("invalid signature: %s\n", validateErr.Error())
 		return
 	}
-	defer r.Body.Close()
-	event, err := github.ParseWebHook(github.WebHookType(r), payload)
-	if err != nil {
-		log.Printf("could not parse webhook: err=%s\n", err)
+	event, parseErr := github.ParseWebHook(github.WebHookType(r), payload)
+	if parseErr != nil {
+		http.Error(w, "The payload parsed failed", http.StatusInternalServerError)
+		log.Printf("could not parse webhook: %s\n", parseErr)
 		return
 	}
 	githubClient := getGitHubClient()
@@ -63,11 +65,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		commentBody := e.GetComment().GetBody()
 		if action == "edited" || action == "created" {
 			issueCommentEvent := *e
-			if strings.Contains(commentBody, Close) {
-				closeOrOpenIssue(githubClient, issueCommentEvent, false)
+			if strings.Contains(commentBody, Label) {
+				addLabelsToIssue(commentBody, githubClient, issueCommentEvent)
 			}
-			if strings.Contains(commentBody, Reopen) {
-				closeOrOpenIssue(githubClient, issueCommentEvent, true)
+			if strings.Contains(commentBody, UnLabel) {
+				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
 			}
 			if strings.Contains(commentBody, Approve) {
 				approvePullRequest(githubClient, issueCommentEvent)
@@ -75,19 +77,19 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, LGTM) {
 				mergePullRequest(githubClient, issueCommentEvent)
 			}
-			if strings.Contains(commentBody, Label) {
-				addLabelsToIssue(commentBody, githubClient, issueCommentEvent)
+			if strings.Contains(commentBody, Close) {
+				closeOrOpenIssue(githubClient, issueCommentEvent, false)
 			}
-			if strings.Contains(commentBody, UnLabel) {
-				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
+			if strings.Contains(commentBody, Reopen) {
+				closeOrOpenIssue(githubClient, issueCommentEvent, true)
 			}
 		}
 	default:
 		log.Printf("unknown event type %s\n", github.WebHookType(r))
-		_, err = fmt.Fprintf(w, "ok")
+		_, _ = fmt.Fprintf(w, "ok")
 		return
 	}
-	_, err = fmt.Fprintf(w, "ok")
+	_, _ = fmt.Fprintf(w, "ok")
 }
 
 func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
