@@ -168,7 +168,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 	senderName := issueCommentEvent.GetSender().GetLogin()
 	if owner != senderName {
 		sendComment(githubClient, owner, repo, number,
-			fmt.Sprintf("Sorry. This pull request can only merged by its owner (@%s).", owner))
+			fmt.Sprintf("Sorry. This pull request can only be merged by its owner (@%s).", owner))
 		return
 	}
 	if mergedBefore {
