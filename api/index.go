@@ -21,6 +21,18 @@ const (
 	Approve = "/approve"
 )
 
+var titleLabelMapping = map[string]string{
+	"fix":     "enhancement",
+	"ci":      "ci",
+	"feat":    "feature",
+	"deps":    "dependencies",
+	"release": "release",
+	"test":    "ci",
+	"doc":     "documentation",
+	"readme":  "documentation",
+	"wip":     "wip",
+}
+
 var ctx = context.Background()
 var secret = os.Getenv("WEBHOOK_SECRET")
 
@@ -53,6 +65,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		// this is a commit push, do something with it
 	case *github.PullRequestEvent:
 		pullRequestEvent := *e
+		addLabelIfPROpen(githubClient, pullRequestEvent)
 		requestReviewIfPROpen(githubClient, pullRequestEvent)
 	case *github.WatchEvent:
 		if e.Action != nil && *e.Action == "starred" {
@@ -154,6 +167,20 @@ func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.
 			log.Print(err)
 		}
 		log.Println(response, reviewers)
+	}
+}
+
+func addLabelIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
+	action := *pullRequestEvent.Action
+	title := pullRequestEvent.GetPullRequest().GetTitle()
+	if action == "opened" || action == "reopened" {
+		for titleKey, labelValue := range titleLabelMapping {
+			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
+				labels, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *pullRequestEvent.GetRepo().Owner.Login,
+					*pullRequestEvent.GetRepo().Name, *pullRequestEvent.GetPullRequest().Number, []string{labelValue})
+				log.Println(response, labels, err)
+			}
+		}
 	}
 }
 
