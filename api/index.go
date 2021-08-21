@@ -21,16 +21,19 @@ const (
 	Approve = "/approve"
 )
 
+// https://www.conventionalcommits.org/zh-hans/v1.0.0/
 var titleLabelMapping = map[string]string{
-	"fix":     "enhancement",
-	"ci":      "ci",
-	"feat":    "feature",
-	"deps":    "dependencies",
-	"release": "release",
-	"test":    "ci",
-	"doc":     "documentation",
-	"readme":  "documentation",
-	"wip":     "wip",
+	"fix":      "enhancement",
+	"ci":       "ci",
+	"feat":     "feature",
+	"bump":     "dependencies",
+	"deps":     "dependencies",
+	"release":  "release",
+	"test":     "ci",
+	"doc":      "documentation",
+	"readme":   "documentation",
+	"wip":      "wip",
+	"refactor": "refactor",
 }
 
 var ctx = context.Background()
@@ -173,7 +176,7 @@ func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.
 func addLabelIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
 	action := *pullRequestEvent.Action
 	title := pullRequestEvent.GetPullRequest().GetTitle()
-	if action == "edited" {
+	if action == "edited" || action == "opened" {
 		for titleKey, labelValue := range titleLabelMapping {
 			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
 				labels, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *pullRequestEvent.GetRepo().Owner.Login,
