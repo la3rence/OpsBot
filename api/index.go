@@ -173,7 +173,7 @@ func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.
 func addLabelIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
 	action := *pullRequestEvent.Action
 	title := pullRequestEvent.GetPullRequest().GetTitle()
-	if action == "opened" || action == "reopened" {
+	if action == "edited" {
 		for titleKey, labelValue := range titleLabelMapping {
 			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
 				labels, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *pullRequestEvent.GetRepo().Owner.Login,
