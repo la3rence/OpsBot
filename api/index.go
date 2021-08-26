@@ -23,17 +23,18 @@ const (
 
 // https://www.conventionalcommits.org/zh-hans/v1.0.0/
 var titleLabelMapping = map[string]string{
-	"fix":      "enhancement",
-	"ci":       "ci",
-	"feat":     "feature",
-	"bump":     "dependencies",
-	"deps":     "dependencies",
-	"release":  "release",
-	"test":     "ci",
-	"doc":      "documentation",
-	"readme":   "documentation",
-	"wip":      "wip",
-	"refactor": "refactor",
+	"fix":        "enhancement",
+	"ci":         "ci",
+	"feat":       "feature",
+	"bump":       "dependencies",
+	"deps":       "dependencies",
+	"dependency": "dependencies",
+	"release":    "release",
+	"test":       "ci",
+	"doc":        "documentation",
+	"readme":     "documentation",
+	"wip":        "wip",
+	"refactor":   "refactor",
 }
 
 var ctx = context.Background()
@@ -70,6 +71,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		pullRequestEvent := *e
 		addLabelIfPROpen(githubClient, pullRequestEvent)
 		requestReviewIfPROpen(githubClient, pullRequestEvent)
+	case *github.IssuesEvent:
+		issueEvent := *e
+		addLabelIfIssueOpen(githubClient, issueEvent)
 	case *github.WatchEvent:
 		if e.Action != nil && *e.Action == "starred" {
 			fmt.Printf("%s starred repository %s\n",
@@ -181,6 +185,20 @@ func addLabelIfPROpen(githubClient *github.Client, pullRequestEvent github.PullR
 			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
 				labels, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *pullRequestEvent.GetRepo().Owner.Login,
 					*pullRequestEvent.GetRepo().Name, *pullRequestEvent.GetPullRequest().Number, []string{labelValue})
+				log.Println(response, labels, err)
+			}
+		}
+	}
+}
+
+func addLabelIfIssueOpen(githubClient *github.Client, issuesEvent github.IssuesEvent) {
+	action := *issuesEvent.Action
+	title := issuesEvent.GetIssue().GetTitle()
+	if action == "edited" || action == "opened" {
+		for titleKey, labelValue := range titleLabelMapping {
+			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
+				labels, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *issuesEvent.GetRepo().Owner.Login,
+					*issuesEvent.GetRepo().Name, *issuesEvent.GetIssue().Number, []string{labelValue})
 				log.Println(response, labels, err)
 			}
 		}
