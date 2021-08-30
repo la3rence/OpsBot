@@ -4,8 +4,7 @@ go 1.17
 
 require (
 	github.com/golang/protobuf v1.4.3 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
-	github.com/google/go-github/v34 v34.0.0
+	github.com/google/go-github/v38 v38.0.0
 	github.com/google/go-querystring v1.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
