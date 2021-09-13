@@ -210,18 +210,17 @@ func addLabelIfIssueOpen(githubClient *github.Client, issuesEvent github.IssuesE
 
 func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
 	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
+	senderName := issueCommentEvent.GetSender().GetLogin()
 	repo := issueCommentEvent.GetRepo().GetName()
 	number := issueCommentEvent.GetIssue().GetNumber()
+	if owner != senderName {
+		sendComment(githubClient, owner, repo, number,
+			fmt.Sprintf("Sorry, @%s - This pull request can only be merged by the owner (@%s).", senderName, owner))
+		return
+	}
 	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(ctx, owner, repo, number)
 	mergeComment := fmt.Sprintf("PR #%d was merged (with rebase). Thanks for your contribution.", number)
 	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
-	failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
-	senderName := issueCommentEvent.GetSender().GetLogin()
-	if owner != senderName {
-		sendComment(githubClient, owner, repo, number,
-			fmt.Sprintf("Sorry. This pull request can only be merged by its owner (@%s).", owner))
-		return
-	}
 	if mergedBefore {
 		log.Printf(mergeComment)
 		sendComment(githubClient, owner, repo, number, mergeComment)
@@ -232,7 +231,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 		})
 		if err != nil {
 			log.Println(err)
-			sendDebugCommentForError(githubClient, owner, repo, number, err.Error())
+			sendCommentWithDetailsDom(githubClient, owner, repo, number, "Error", err.Error())
 		} else {
 			log.Println(mergeResult)
 			merged := mergeResult.GetMerged()
@@ -240,7 +239,8 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 				log.Printf(mergeComment)
 				sendComment(githubClient, owner, repo, number, mergeComment)
 			} else {
-				sendDebugCommentForError(githubClient, owner, repo, number, failMsg)
+				failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
+				sendCommentWithDetailsDom(githubClient, owner, repo, number, "Debug", failMsg)
 				log.Printf(failMsg)
 			}
 		}
@@ -259,9 +259,10 @@ func sendComment(githubClient *github.Client, owner string, repo string, number 
 	return nil
 }
 
-func sendDebugCommentForError(githubClient *github.Client, owner string, repo string, number int, comment string) *github.IssueComment {
+func sendCommentWithDetailsDom(githubClient *github.Client, owner string, repo string, number int,
+	detailSummary string, detailBody string) *github.IssueComment {
 	return sendComment(githubClient, owner, repo, number,
-		`<details><summary>Debug</summary><p>`+comment+`</p></details>`)
+		`<details><summary>`+detailSummary+`</summary><p>`+detailBody+`</p></details>`)
 }
 
 func closeOrOpenIssue(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, open bool) {
