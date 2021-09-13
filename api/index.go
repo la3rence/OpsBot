@@ -16,8 +16,10 @@ const (
 	Label   = "/label"
 	UnLabel = "/un-label"
 	LGTM    = "/lgtm"
+	Merge   = "/merge"
 	Close   = "/close"
 	Reopen  = "/reopen"
+	ReOpen  = "/re-open"
 	Approve = "/approve"
 )
 
@@ -95,13 +97,13 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, Approve) {
 				approvePullRequest(githubClient, issueCommentEvent)
 			}
-			if strings.Contains(commentBody, LGTM) {
+			if strings.Contains(commentBody, LGTM) || strings.Contains(commentBody, Merge) {
 				mergePullRequest(githubClient, issueCommentEvent)
 			}
 			if strings.Contains(commentBody, Close) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, false)
 			}
-			if strings.Contains(commentBody, Reopen) {
+			if strings.Contains(commentBody, Reopen) || strings.Contains(commentBody, ReOpen) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, true)
 			}
 		}
