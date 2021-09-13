@@ -25,19 +25,20 @@ const (
 
 // https://www.conventionalcommits.org/zh-hans/v1.0.0/
 var titleLabelMapping = map[string]string{
-	"fix":        "enhancement",
-	"ci":         "ci",
-	"feat":       "feature",
-	"bump":       "dependencies",
-	"deps":       "dependencies",
-	"dependency": "dependencies",
-	"release":    "release",
-	"test":       "test",
-	"doc":        "documentation",
-	"readme":     "documentation",
-	"wip":        "wip",
-	"refactor":   "refactor",
-	"bug":        "bug",
+	"enhancement": "enhancement",
+	"fix":         "enhancement",
+	"ci":          "ci",
+	"feat":        "feature",
+	"bump":        "dependencies",
+	"deps":        "dependencies",
+	"dependency":  "dependencies",
+	"release":     "release",
+	"test":        "test",
+	"doc":         "documentation",
+	"readme":      "documentation",
+	"wip":         "wip",
+	"refactor":    "refactor",
+	"bug":         "bug",
 }
 
 var ctx = context.Background()
