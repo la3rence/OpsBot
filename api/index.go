@@ -30,11 +30,12 @@ var titleLabelMapping = map[string]string{
 	"deps":       "dependencies",
 	"dependency": "dependencies",
 	"release":    "release",
-	"test":       "ci",
+	"test":       "test",
 	"doc":        "documentation",
 	"readme":     "documentation",
 	"wip":        "wip",
 	"refactor":   "refactor",
+	"bug":        "bug",
 }
 
 var ctx = context.Background()
@@ -229,7 +230,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 		})
 		if err != nil {
 			log.Println(err)
-			sendComment(githubClient, owner, repo, number, err.Error())
+			sendDebugCommentForError(githubClient, owner, repo, number, err.Error())
 		} else {
 			log.Println(mergeResult)
 			merged := mergeResult.GetMerged()
@@ -237,7 +238,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 				log.Printf(mergeComment)
 				sendComment(githubClient, owner, repo, number, mergeComment)
 			} else {
-				sendComment(githubClient, owner, repo, number, failMsg)
+				sendDebugCommentForError(githubClient, owner, repo, number, failMsg)
 				log.Printf(failMsg)
 			}
 		}
@@ -254,6 +255,11 @@ func sendComment(githubClient *github.Client, owner string, repo string, number 
 		return createdComment
 	}
 	return nil
+}
+
+func sendDebugCommentForError(githubClient *github.Client, owner string, repo string, number int, comment string) *github.IssueComment {
+	return sendComment(githubClient, owner, repo, number,
+		`<details><summary>Debug</summary><p>`+comment+`</p></details>`)
 }
 
 func closeOrOpenIssue(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, open bool) {
