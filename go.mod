@@ -1,4 +1,4 @@
-module OpsBot
+module github.com/Lonor/OpsBot
 
 go 1.17
 

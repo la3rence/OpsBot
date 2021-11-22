@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"OpsBot/utils"
 	"context"
 	"fmt"
+	"github.com/Lonor/OpsBot/utils"
 	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
 	"log"
