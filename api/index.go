@@ -126,13 +126,15 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 	number := *issueCommentEvent.GetIssue().Number
 	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
 	updatedBranch, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number, &github.PullRequestBranchUpdateOptions{
-		ExpectedHeadSHA: nil, // default: SHA of the pull request's current HEAD ref.
+		//ExpectedHeadSHA: nil, // default: SHA of the pull request's current HEAD ref.
 	})
+	// todo: ACK with thumb up
 	if err != nil {
 		log.Println("Update branch error" + err.Error())
+		sendCommentWithDetailsDom(client, owner, repo, number, "Debug", fmt.Sprintf("%v\n %v", updatedBranch, res))
 	} else {
-		if res.StatusCode == 202 || res.StatusCode == 200 {
-			sendCommentWithDetailsDom(client, owner, repo, number, "Debug", fmt.Sprintf("%v", updatedBranch))
+		if res.StatusCode == 202 {
+			sendCommentWithDetailsDom(client, owner, repo, number, "Success", fmt.Sprintf("%v", updatedBranch))
 		}
 	}
 }
