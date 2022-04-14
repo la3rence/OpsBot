@@ -21,6 +21,7 @@ const (
 	Reopen  = "/reopen"
 	ReOpen  = "/re-open"
 	Approve = "/approve"
+	Rebase  = "/rebase"
 )
 
 // https://www.conventionalcommits.org/zh-hans/v1.0.0/
@@ -107,6 +108,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, Reopen) || strings.Contains(commentBody, ReOpen) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, true)
 			}
+			if strings.Contains(commentBody, Rebase) {
+				rebasePullRequest(githubClient, issueCommentEvent)
+			}
 		}
 	default:
 		log.Printf("unknown event type %s\n", github.WebHookType(r))
@@ -114,6 +118,23 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, _ = fmt.Fprintf(w, "ok")
+}
+
+func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	repo := *issueCommentEvent.GetRepo().Name
+	owner := *issueCommentEvent.GetRepo().Owner.Login
+	number := *issueCommentEvent.GetIssue().Number
+	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
+	updatedBranch, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number, &github.PullRequestBranchUpdateOptions{
+		ExpectedHeadSHA: nil, // default: SHA of the pull request's current HEAD ref.
+	})
+	if err != nil {
+		log.Println("Update branch error" + err.Error())
+	} else {
+		if res.StatusCode == 202 || res.StatusCode == 200 {
+			sendCommentWithDetailsDom(client, owner, repo, number, "Debug", fmt.Sprintf("%v", updatedBranch))
+		}
+	}
 }
 
 func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
