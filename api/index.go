@@ -124,12 +124,30 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 	repo := *issueCommentEvent.GetRepo().Name
 	owner := *issueCommentEvent.GetRepo().Owner.Login
 	number := *issueCommentEvent.GetIssue().Number
+	pullRequest, _, _ := client.PullRequests.Get(ctx, owner, repo, number)
+	targetBranchName := pullRequest.GetBase().GetRef()
+	sourceBranchName := pullRequest.GetHead().GetRef()
 	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
 	updatedBranch, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number, nil)
 	// todo: ACK with thumb up
 	if err != nil {
 		log.Println("Update branch error" + err.Error())
-		sendCommentWithDetailsDom(client, owner, repo, number, "Debug", fmt.Sprintf("%+v\n %+v", updatedBranch, &res))
+		sendCommentWithDetailsDom(client, owner, repo, number, "Error", fmt.Sprintf("%+v\n %+v", updatedBranch, &res))
+		// if conflict: should merge target branch to pr branch, then force push
+		commitString := "merge: " + targetBranchName + " -> " + sourceBranchName
+		// merge target into
+		merge, _, err := client.Repositories.Merge(ctx, owner, repo, &github.RepositoryMergeRequest{
+			Base:          &sourceBranchName, // The name of the base branch that the head will be merged into. pr?
+			Head:          &targetBranchName, // The head to merge. This can be a branch name or a commit SHA1. main?
+			CommitMessage: &commitString,
+		})
+		if err != nil {
+			log.Println(commitString + " error: " + err.Error())
+		} else {
+			// merged
+			sendCommentWithDetailsDom(client, owner, repo, number,
+				commitString, merge.GetSHA()+" "+merge.GetURL()+" "+merge.GetAuthor().GetName())
+		}
 	} else {
 		if res.StatusCode == 202 {
 			sendCommentWithDetailsDom(client, owner, repo, number, "Success", fmt.Sprintf("%+v", updatedBranch))
