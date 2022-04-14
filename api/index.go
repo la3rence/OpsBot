@@ -132,7 +132,7 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 	// todo: ACK with thumb up
 	if err != nil {
 		log.Println("Update branch error" + err.Error())
-		sendCommentWithDetailsDom(client, owner, repo, number, "Error", fmt.Sprintf("%+v\n %+v", updatedBranch, &res))
+		sendCommentWithDetailsDom(client, owner, repo, number, "Error", fmt.Sprintf("%s", err.Error()))
 		// if conflict: should merge target branch to pr branch, then force push
 		commitString := "merge: " + targetBranchName + " -> " + sourceBranchName
 		// merge target into
@@ -143,6 +143,7 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 		})
 		if err != nil {
 			log.Println(commitString + " error: " + err.Error())
+			sendCommentWithDetailsDom(client, owner, repo, number, commitString, err.Error())
 		} else {
 			// merged
 			sendCommentWithDetailsDom(client, owner, repo, number,
