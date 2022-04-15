@@ -19,8 +19,11 @@ this repo. If you're interested in this stuff as well, issues or pull requests a
 - [x] `/reopen`                Reopen issue / PR
 - [x] `/approve`               Approve the PR
 - [x] `/lgtm`                  Merge the PR with rebase
+- [x] `/update`                Update the PR by merging target branch to source PR branch
 - [ ] `/test`                  Test the PR with continuous integration
 - [ ] `/assign [username]`     Assign the issue / PR to the user
+
+Once every command accepted by bot, there'll be a 👍 reaction shows in the comment.
 
 ## Configuration
 
