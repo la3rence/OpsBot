@@ -109,7 +109,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, true)
 			}
 			if strings.Contains(commentBody, Update) {
-				rebasePullRequest(githubClient, issueCommentEvent)
+				updatePullRequest(githubClient, issueCommentEvent)
 			}
 		}
 	default:
@@ -120,7 +120,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "ok")
 }
 
-func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueCommentEvent) {
+func updatePullRequest(client *github.Client, issueCommentEvent github.IssueCommentEvent) {
 	repo := *issueCommentEvent.GetRepo().Name
 	owner := *issueCommentEvent.GetRepo().Owner.Login
 	number := *issueCommentEvent.GetIssue().Number
@@ -138,27 +138,27 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 			ExpectedHeadSHA: &sourceBranchSha,
 		})
 	if err != nil {
-		log.Println("Update branch error" + err.Error())
-		if res != nil {
-			sendCommentWithDetailsDom(client, owner, repo, number, "Error with response", err.Error()+res.Status)
+		log.Println("Update branch may has error " + err.Error())
+		if res != nil && res.StatusCode == 202 {
+			sendCommentWithDetailsDom(client, owner, repo, number, "Updating Accepted", err.Error()+"<br>"+res.Status)
 		} else {
 			sendCommentWithDetailsDom(client, owner, repo, number, "Error", err.Error())
-		}
-		// if conflict: should merge target branch to pr branch, then force push
-		commitString := "merge: " + targetBranchName + " -> " + sourceBranchName
-		// merge target into
-		merge, _, err := client.Repositories.Merge(ctx, owner, repo, &github.RepositoryMergeRequest{
-			Base:          &sourceBranchName, // The name of the base branch that the head will be merged into. pr?
-			Head:          &targetBranchName, // The head to merge. This can be a branch name or a commit SHA1. main?
-			CommitMessage: &commitString,
-		})
-		if err != nil {
-			log.Println(commitString + " error: " + err.Error())
-			sendCommentWithDetailsDom(client, owner, repo, number, commitString+" error", err.Error())
-		} else {
-			// merged
-			sendCommentWithDetailsDom(client, owner, repo, number,
-				commitString+" success", merge.String())
+			// if conflict: should merge target branch to pr branch, then force push
+			commitString := "merge: " + targetBranchName + " -> " + sourceBranchName
+			// merge target into
+			merge, _, err := client.Repositories.Merge(ctx, owner, repo, &github.RepositoryMergeRequest{
+				Base:          &sourceBranchName, // The name of the base branch that the head will be merged into. pr?
+				Head:          &targetBranchName, // The head to merge. This can be a branch name or a commit SHA1. main?
+				CommitMessage: &commitString,
+			})
+			if err != nil {
+				log.Println(commitString + " error: " + err.Error())
+				sendCommentWithDetailsDom(client, owner, repo, number, commitString+" error", err.Error())
+			} else {
+				// merged
+				sendCommentWithDetailsDom(client, owner, repo, number,
+					commitString+" success", merge.String())
+			}
 		}
 	} else {
 		sendCommentWithDetailsDom(client, owner, repo, number, "Success", updatedBranch.GetMessage()+"code: "+res.Status)
