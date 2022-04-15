@@ -124,14 +124,18 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 	repo := *issueCommentEvent.GetRepo().Name
 	owner := *issueCommentEvent.GetRepo().Owner.Login
 	number := *issueCommentEvent.GetIssue().Number
-	pullRequest, _, _ := client.PullRequests.Get(ctx, owner, repo, number)
-	targetBranchName := pullRequest.GetBase().GetRef()
-	sourceBranchName := pullRequest.GetHead().GetRef()
-	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
-	updatedBranch, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number, nil)
 	// ACK with reaction
 	commentId := issueCommentEvent.GetComment().GetID()
 	_, _, _ = client.Reactions.CreateIssueCommentReaction(ctx, owner, repo, commentId, "+1")
+	pullRequest, _, _ := client.PullRequests.Get(ctx, owner, repo, number)
+	targetBranchName := pullRequest.GetBase().GetRef()
+	targetBranchSha := pullRequest.GetBase().GetSHA()
+	sourceBranchName := pullRequest.GetHead().GetRef()
+	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
+	updatedBranch, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number,
+		&github.PullRequestBranchUpdateOptions{
+			ExpectedHeadSHA: &targetBranchSha,
+		})
 	if err != nil {
 		log.Println("Update branch error" + err.Error())
 		sendCommentWithDetailsDom(client, owner, repo, number, "Error", fmt.Sprintf("%s", err.Error()))
@@ -145,11 +149,11 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 		})
 		if err != nil {
 			log.Println(commitString + " error: " + err.Error())
-			sendCommentWithDetailsDom(client, owner, repo, number, commitString, err.Error())
+			sendCommentWithDetailsDom(client, owner, repo, number, commitString+" error", err.Error())
 		} else {
 			// merged
 			sendCommentWithDetailsDom(client, owner, repo, number,
-				commitString, merge.GetSHA()+" "+merge.GetURL()+" "+merge.GetAuthor().GetName())
+				commitString+" success", merge.GetSHA()+" "+merge.GetURL()+" by "+merge.GetAuthor().GetName())
 		}
 	} else {
 		if res.StatusCode == 202 {
