@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+const botName = "k8s-ci-bot"
+
 const (
 	Label   = "/label"
 	UnLabel = "/un-label"
@@ -89,6 +91,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		commentBody := e.GetComment().GetBody()
 		if action == "edited" || action == "created" {
 			issueCommentEvent := *e
+			// avoid recursion comment by bot
+			if issueCommentEvent.GetSender().GetName() == botName {
+				_, _ = fmt.Fprintf(w, "ok")
+				return
+			}
 			if strings.Contains(commentBody, Label) {
 				addLabelsToIssue(commentBody, githubClient, issueCommentEvent)
 			}
