@@ -120,20 +120,23 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "ok")
 }
 
+// ackByReaction ACK with reaction 👍
+func ackByReaction(client *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	repo := *issueCommentEvent.GetRepo().Name
+	owner := *issueCommentEvent.GetRepo().Owner.Login
+	commentId := issueCommentEvent.GetComment().GetID()
+	_, _, _ = client.Reactions.CreateIssueCommentReaction(ctx, owner, repo, commentId, "+1")
+}
+
 func updatePullRequest(client *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	ackByReaction(client, issueCommentEvent)
 	repo := *issueCommentEvent.GetRepo().Name
 	owner := *issueCommentEvent.GetRepo().Owner.Login
 	number := *issueCommentEvent.GetIssue().Number
-	// ACK with reaction
-	commentId := issueCommentEvent.GetComment().GetID()
-	_, _, _ = client.Reactions.CreateIssueCommentReaction(ctx, owner, repo, commentId, "+1")
 	pullRequest, _, _ := client.PullRequests.Get(ctx, owner, repo, number)
-	targetBranchName := pullRequest.GetBase().GetRef()
-	// targetBranchSha := pullRequest.GetBase().GetSHA()
-	sourceBranchName := pullRequest.GetHead().GetRef()
 	sourceBranchSha := pullRequest.GetHead().GetSHA()
 	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
-	updatedBranch, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number,
+	_, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number,
 		&github.PullRequestBranchUpdateOptions{
 			ExpectedHeadSHA: &sourceBranchSha,
 		})
@@ -143,29 +146,12 @@ func updatePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 			sendCommentWithDetailsDom(client, owner, repo, number, "Updating Accepted", err.Error()+"<br>"+res.Status)
 		} else {
 			sendCommentWithDetailsDom(client, owner, repo, number, "Error", err.Error())
-			// if conflict: should merge target branch to pr branch, then force push
-			commitString := "merge: " + targetBranchName + " -> " + sourceBranchName
-			// merge target into
-			merge, _, err := client.Repositories.Merge(ctx, owner, repo, &github.RepositoryMergeRequest{
-				Base:          &sourceBranchName, // The name of the base branch that the head will be merged into. pr?
-				Head:          &targetBranchName, // The head to merge. This can be a branch name or a commit SHA1. main?
-				CommitMessage: &commitString,
-			})
-			if err != nil {
-				log.Println(commitString + " error: " + err.Error())
-				sendCommentWithDetailsDom(client, owner, repo, number, commitString+" error", err.Error())
-			} else {
-				// merged
-				sendCommentWithDetailsDom(client, owner, repo, number,
-					commitString+" success", merge.String())
-			}
 		}
-	} else {
-		sendCommentWithDetailsDom(client, owner, repo, number, "Success", updatedBranch.GetMessage()+"code: "+res.Status)
 	}
 }
 
 func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
+	ackByReaction(client, event)
 	approveEventName := "APPROVE"
 	loginOwner := event.GetRepo().GetOwner().GetLogin()
 	repoName := event.GetRepo().GetName()
@@ -190,6 +176,7 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 }
 
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	ackByReaction(githubClient, issueCommentEvent)
 	params := utils.GetTagNextAllParams(commentBody, Label)
 	issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
 		*issueCommentEvent.GetRepo().Name,
@@ -198,6 +185,7 @@ func addLabelsToIssue(commentBody string, githubClient *github.Client, issueComm
 }
 
 func removeLabelFromIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	ackByReaction(githubClient, issueCommentEvent)
 	params := utils.GetTagNextAllParams(commentBody, UnLabel)
 	for _, param := range params {
 		response, githubErr := githubClient.Issues.RemoveLabelForIssue(ctx,
@@ -259,6 +247,7 @@ func addLabelIfIssueOpen(githubClient *github.Client, issuesEvent github.IssuesE
 }
 
 func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	ackByReaction(githubClient, issueCommentEvent)
 	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
 	senderName := issueCommentEvent.GetSender().GetLogin()
 	repo := issueCommentEvent.GetRepo().GetName()
@@ -316,6 +305,7 @@ func sendCommentWithDetailsDom(githubClient *github.Client, owner string, repo s
 }
 
 func closeOrOpenIssue(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, open bool) {
+	ackByReaction(githubClient, issueCommentEvent)
 	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
 	repo := issueCommentEvent.GetRepo().GetName()
 	number := issueCommentEvent.GetIssue().GetNumber()
