@@ -21,7 +21,7 @@ const (
 	Reopen  = "/reopen"
 	ReOpen  = "/re-open"
 	Approve = "/approve"
-	Rebase  = "/rebase"
+	Update  = "/update"
 )
 
 // https://www.conventionalcommits.org/zh-hans/v1.0.0/
@@ -108,7 +108,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, Reopen) || strings.Contains(commentBody, ReOpen) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, true)
 			}
-			if strings.Contains(commentBody, Rebase) {
+			if strings.Contains(commentBody, Update) {
 				rebasePullRequest(githubClient, issueCommentEvent)
 			}
 		}
@@ -139,7 +139,11 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 		})
 	if err != nil {
 		log.Println("Update branch error" + err.Error())
-		sendCommentWithDetailsDom(client, owner, repo, number, "Error", fmt.Sprintf("%s", err.Error()))
+		if res != nil {
+			sendCommentWithDetailsDom(client, owner, repo, number, "Error with response", err.Error()+res.Status)
+		} else {
+			sendCommentWithDetailsDom(client, owner, repo, number, "Error", err.Error())
+		}
 		// if conflict: should merge target branch to pr branch, then force push
 		commitString := "merge: " + targetBranchName + " -> " + sourceBranchName
 		// merge target into
@@ -157,9 +161,7 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 				commitString+" success", merge.String())
 		}
 	} else {
-		if res.StatusCode == 202 {
-			sendCommentWithDetailsDom(client, owner, repo, number, "Success", fmt.Sprintf("%+v", updatedBranch))
-		}
+		sendCommentWithDetailsDom(client, owner, repo, number, "Success", updatedBranch.GetMessage()+"code: "+res.Status)
 	}
 }
 
