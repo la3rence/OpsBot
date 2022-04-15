@@ -129,12 +129,13 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 	_, _, _ = client.Reactions.CreateIssueCommentReaction(ctx, owner, repo, commentId, "+1")
 	pullRequest, _, _ := client.PullRequests.Get(ctx, owner, repo, number)
 	targetBranchName := pullRequest.GetBase().GetRef()
-	targetBranchSha := pullRequest.GetBase().GetSHA()
+	// targetBranchSha := pullRequest.GetBase().GetSHA()
 	sourceBranchName := pullRequest.GetHead().GetRef()
+	sourceBranchSha := pullRequest.GetHead().GetSHA()
 	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
 	updatedBranch, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number,
 		&github.PullRequestBranchUpdateOptions{
-			ExpectedHeadSHA: &targetBranchSha,
+			ExpectedHeadSHA: &sourceBranchSha,
 		})
 	if err != nil {
 		log.Println("Update branch error" + err.Error())
@@ -153,7 +154,7 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 		} else {
 			// merged
 			sendCommentWithDetailsDom(client, owner, repo, number,
-				commitString+" success", merge.GetSHA()+" "+merge.GetURL()+" by "+merge.GetAuthor().GetName())
+				commitString+" success", merge.String())
 		}
 	} else {
 		if res.StatusCode == 202 {
