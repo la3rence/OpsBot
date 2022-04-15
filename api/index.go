@@ -115,9 +115,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, Reopen) || strings.Contains(commentBody, ReOpen) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, true)
 			}
-			if strings.Contains(commentBody, Update) {
-				updatePullRequest(githubClient, issueCommentEvent)
-			}
+			//if strings.Contains(commentBody, Update) {
+			//	updatePullRequest(githubClient, issueCommentEvent)
+			//}
 		}
 	default:
 		log.Printf("unknown event type %s\n", github.WebHookType(r))
