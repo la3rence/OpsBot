@@ -129,9 +129,9 @@ func rebasePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 	sourceBranchName := pullRequest.GetHead().GetRef()
 	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
 	updatedBranch, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number, nil)
+	// ACK with reaction
 	commentId := issueCommentEvent.GetComment().GetID()
-	_, _, _ = client.Reactions.CreatePullRequestCommentReaction(ctx, owner, repo, commentId, "+1")
-	// todo: ACK with thumb up
+	_, _, _ = client.Reactions.CreateIssueCommentReaction(ctx, owner, repo, commentId, "+1")
 	if err != nil {
 		log.Println("Update branch error" + err.Error())
 		sendCommentWithDetailsDom(client, owner, repo, number, "Error", fmt.Sprintf("%s", err.Error()))
