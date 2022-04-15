@@ -23,6 +23,7 @@ const (
 	Reopen  = "/reopen"
 	ReOpen  = "/re-open"
 	Approve = "/approve"
+	Update  = "/update"
 )
 
 // https://www.conventionalcommits.org/zh-hans/v1.0.0/
@@ -114,6 +115,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, Reopen) || strings.Contains(commentBody, ReOpen) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, true)
 			}
+			if strings.Contains(commentBody, Update) {
+				updatePullRequest(githubClient, issueCommentEvent)
+			}
 		}
 	default:
 		log.Printf("unknown event type %s\n", github.WebHookType(r))
@@ -123,7 +127,38 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "ok")
 }
 
+// ackByReaction ACK with reaction 👍
+func ackByReaction(client *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	repo := *issueCommentEvent.GetRepo().Name
+	owner := *issueCommentEvent.GetRepo().Owner.Login
+	commentId := issueCommentEvent.GetComment().GetID()
+	_, _, _ = client.Reactions.CreateIssueCommentReaction(ctx, owner, repo, commentId, "+1")
+}
+
+func updatePullRequest(client *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	ackByReaction(client, issueCommentEvent)
+	repo := *issueCommentEvent.GetRepo().Name
+	owner := *issueCommentEvent.GetRepo().Owner.Login
+	number := *issueCommentEvent.GetIssue().Number
+	pullRequest, _, _ := client.PullRequests.Get(ctx, owner, repo, number)
+	sourceBranchSha := pullRequest.GetHead().GetSHA()
+	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
+	_, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number,
+		&github.PullRequestBranchUpdateOptions{
+			ExpectedHeadSHA: &sourceBranchSha,
+		})
+	if err != nil {
+		log.Println("Update branch may has error " + err.Error())
+		if res != nil && res.StatusCode == 202 {
+			sendCommentWithDetailsDom(client, owner, repo, number, "Updating Accepted", err.Error()+"<br>"+res.Status)
+		} else {
+			sendCommentWithDetailsDom(client, owner, repo, number, "Error", err.Error())
+		}
+	}
+}
+
 func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
+	ackByReaction(client, event)
 	approveEventName := "APPROVE"
 	loginOwner := event.GetRepo().GetOwner().GetLogin()
 	repoName := event.GetRepo().GetName()
@@ -148,6 +183,7 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 }
 
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	ackByReaction(githubClient, issueCommentEvent)
 	params := utils.GetTagNextAllParams(commentBody, Label)
 	issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
 		*issueCommentEvent.GetRepo().Name,
@@ -156,6 +192,7 @@ func addLabelsToIssue(commentBody string, githubClient *github.Client, issueComm
 }
 
 func removeLabelFromIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	ackByReaction(githubClient, issueCommentEvent)
 	params := utils.GetTagNextAllParams(commentBody, UnLabel)
 	for _, param := range params {
 		response, githubErr := githubClient.Issues.RemoveLabelForIssue(ctx,
@@ -217,6 +254,7 @@ func addLabelIfIssueOpen(githubClient *github.Client, issuesEvent github.IssuesE
 }
 
 func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+	ackByReaction(githubClient, issueCommentEvent)
 	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
 	senderName := issueCommentEvent.GetSender().GetLogin()
 	repo := issueCommentEvent.GetRepo().GetName()
@@ -274,6 +312,7 @@ func sendCommentWithDetailsDom(githubClient *github.Client, owner string, repo s
 }
 
 func closeOrOpenIssue(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, open bool) {
+	ackByReaction(githubClient, issueCommentEvent)
 	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
 	repo := issueCommentEvent.GetRepo().GetName()
 	number := issueCommentEvent.GetIssue().GetNumber()
