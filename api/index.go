@@ -60,6 +60,7 @@ var labelColorMapping = map[string]string{
 	"approved":      "0E8A16",
 	"todo":          "FBCA04",
 	"label":         "FBCA04",
+	"default":       "FBCA04",
 }
 
 var ctx = context.Background()
@@ -219,7 +220,7 @@ func addLabelsToIssue(commentBody string, githubClient *github.Client, issueComm
 		if !labelExists {
 			color := labelColorMapping[param]
 			if color == "" {
-				color = "ffffff"
+				color = labelColorMapping["default"]
 			}
 			_, _, _ = githubClient.Issues.CreateLabel(ctx, *issueCommentEvent.GetRepo().Owner.Login,
 				*issueCommentEvent.GetRepo().Name, &github.Label{
