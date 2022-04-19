@@ -59,6 +59,7 @@ var labelColorMapping = map[string]string{
 	"fixed":         "0E8A16",
 	"approved":      "0E8A16",
 	"todo":          "FBCA04",
+	"label":         "FBCA04",
 }
 
 var ctx = context.Background()
