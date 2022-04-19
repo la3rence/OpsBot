@@ -148,9 +148,9 @@ func updatePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 			ExpectedHeadSHA: &sourceBranchSha,
 		})
 	if err != nil {
-		log.Println("Update branch may has error " + err.Error())
 		if res != nil && res.StatusCode == 202 {
-			sendCommentWithDetailsDom(client, owner, repo, number, "Updating Accepted", err.Error()+"<br>"+res.Status)
+			// sendCommentWithDetailsDom(client, owner, repo, number, "Updating Accepted", err.Error()+"<br>"+res.Status)
+			fmt.Println("Updating Accepted")
 		} else {
 			sendCommentWithDetailsDom(client, owner, repo, number, "Error", err.Error())
 		}
