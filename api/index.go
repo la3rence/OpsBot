@@ -46,20 +46,20 @@ var titleLabelMapping = map[string]string{
 }
 
 var labelColorMapping = map[string]string{
-	"feature":       "008800",
+	"feature":       "5319E7",
 	"bug":           "ff0000",
-	"test":          "ffa500",
-	"ci":            "0000ff",
-	"release":       "0000ff",
-	"wip":           "ffa500",
-	"refactor":      "ffa500",
-	"documentation": "0000ff",
-	"dependencies":  "ffa500",
-	"enhancement":   "008800",
+	"test":          "006B75",
+	"ci":            "006B75",
+	"release":       "0075ca",
+	"wip":           "FBCA04",
+	"refactor":      "5319E7",
+	"documentation": "0075ca",
+	"dependencies":  "0075ca",
+	"enhancement":   "a2eeef",
 	"fixed":         "0E8A16",
 	"approved":      "0E8A16",
 	"todo":          "FBCA04",
-	"label":         "FBCA04",
+	"label":         "5319E7",
 	"default":       "FBCA04",
 }
 
