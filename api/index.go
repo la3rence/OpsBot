@@ -117,7 +117,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if strings.Contains(commentBody, Label) {
-				addLabelsToIssue(commentBody, githubClient, issueCommentEvent)
+				addLabelsByComment(commentBody, githubClient, issueCommentEvent)
 			}
 			if strings.Contains(commentBody, UnLabel) {
 				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
@@ -177,17 +177,16 @@ func updatePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 }
 
 func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
-	ackByReaction(client, event)
 	approveEventName := "APPROVE"
-	loginOwner := event.GetRepo().GetOwner().GetLogin()
-	repoName := event.GetRepo().GetName()
+	owner := event.GetRepo().GetOwner().GetLogin()
+	repo := event.GetRepo().GetName()
 	issueNumber := event.GetIssue().GetNumber()
-	review, _, err := client.PullRequests.CreateReview(ctx, loginOwner, repoName, issueNumber,
+	review, _, err := client.PullRequests.CreateReview(ctx, owner, repo, issueNumber,
 		&github.PullRequestReviewRequest{
 			Event: &approveEventName,
 		})
 	if err == nil {
-		submitReview, _, _ := client.PullRequests.SubmitReview(ctx, loginOwner, repoName, issueNumber,
+		submitReview, _, _ := client.PullRequests.SubmitReview(ctx, owner, repo, issueNumber,
 			review.GetID(),
 			&github.PullRequestReviewRequest{
 				Event: &approveEventName,
@@ -195,20 +194,25 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 		)
 		log.Println(submitReview)
 		labels := []string{"approved"}
-		_, _, _ = client.Issues.AddLabelsToIssue(ctx, loginOwner, repoName, issueNumber, labels)
+		addLabelsToIssue(labels, client, owner, repo, issueNumber)
 	} else {
 		log.Println("CreateReview Error" + err.Error())
 	}
 }
 
-func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+func addLabelsByComment(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
 	ackByReaction(githubClient, issueCommentEvent)
-	params := utils.GetTagNextAllParams(commentBody, Label)
+	labelsToAdd := utils.GetTagNextAllParams(commentBody, Label)
+	addLabelsToIssue(labelsToAdd, githubClient,
+		issueCommentEvent.GetRepo().GetOwner().GetLogin(),
+		issueCommentEvent.GetRepo().GetName(),
+		issueCommentEvent.GetIssue().GetNumber())
+}
+
+func addLabelsToIssue(labelsToAdd []string, githubClient *github.Client, owner string, repo string, issueNumber int) {
 	// check if label exists, if yes, add it
-	labels, _, _ := githubClient.Issues.ListLabelsByIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
-		*issueCommentEvent.GetRepo().Name,
-		*issueCommentEvent.GetIssue().Number, nil)
-	for _, param := range params {
+	labels, _, _ := githubClient.Issues.ListLabelsByIssue(ctx, owner, repo, issueNumber, nil)
+	for _, param := range labelsToAdd {
 		labelExists := false
 		for _, label := range labels {
 			if label.GetName() == param {
@@ -222,16 +226,13 @@ func addLabelsToIssue(commentBody string, githubClient *github.Client, issueComm
 			if color == "" {
 				color = labelColorMapping["default"]
 			}
-			_, _, _ = githubClient.Issues.CreateLabel(ctx, *issueCommentEvent.GetRepo().Owner.Login,
-				*issueCommentEvent.GetRepo().Name, &github.Label{
-					Name:  &param,
-					Color: &color,
-				})
+			_, _, _ = githubClient.Issues.CreateLabel(ctx, owner, repo, &github.Label{
+				Name:  &param,
+				Color: &color,
+			})
 		}
 	}
-	issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
-		*issueCommentEvent.GetRepo().Name,
-		*issueCommentEvent.GetIssue().Number, params)
+	issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, owner, repo, issueNumber, labelsToAdd)
 	log.Println(response, issue, githubErr)
 }
 
@@ -275,9 +276,10 @@ func addLabelIfPROpen(githubClient *github.Client, pullRequestEvent github.PullR
 	if action == "edited" || action == "opened" {
 		for titleKey, labelValue := range titleLabelMapping {
 			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
-				labels, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *pullRequestEvent.GetRepo().Owner.Login,
-					*pullRequestEvent.GetRepo().Name, *pullRequestEvent.GetPullRequest().Number, []string{labelValue})
-				log.Println(response, labels, err)
+				addLabelsToIssue([]string{labelValue}, githubClient,
+					*pullRequestEvent.GetRepo().Owner.Login,
+					*pullRequestEvent.GetRepo().Name,
+					*pullRequestEvent.GetPullRequest().Number)
 			}
 		}
 	}
@@ -289,9 +291,10 @@ func addLabelIfIssueOpen(githubClient *github.Client, issuesEvent github.IssuesE
 	if action == "edited" || action == "opened" {
 		for titleKey, labelValue := range titleLabelMapping {
 			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
-				labels, response, err := githubClient.Issues.AddLabelsToIssue(ctx, *issuesEvent.GetRepo().Owner.Login,
-					*issuesEvent.GetRepo().Name, *issuesEvent.GetIssue().Number, []string{labelValue})
-				log.Println(response, labels, err)
+				addLabelsToIssue([]string{labelValue}, githubClient,
+					*issuesEvent.GetRepo().Owner.Login,
+					*issuesEvent.GetRepo().Name,
+					*issuesEvent.GetIssue().Number)
 			}
 		}
 	}
