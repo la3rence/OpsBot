@@ -3,13 +3,14 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/Lonor/OpsBot/utils"
-	"github.com/google/go-github/v39/github"
-	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/Lonor/OpsBot/utils"
+	"github.com/google/go-github/v39/github"
+	"golang.org/x/oauth2"
 )
 
 const botName = "k8s-ci-bot"
@@ -42,6 +43,22 @@ var titleLabelMapping = map[string]string{
 	"wip":         "wip",
 	"refactor":    "refactor",
 	"bug":         "bug",
+}
+
+var labelColorMapping = map[string]string{
+	"feature":       "008800",
+	"bug":           "ff0000",
+	"test":          "ffa500",
+	"ci":            "0000ff",
+	"release":       "0000ff",
+	"wip":           "ffa500",
+	"refactor":      "ffa500",
+	"documentation": "0000ff",
+	"dependencies":  "ffa500",
+	"enhancement":   "008800",
+	"fixed":         "0E8A16",
+	"approved":      "0E8A16",
+	"todo":          "FBCA04",
 }
 
 var ctx = context.Background()
@@ -185,6 +202,28 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 func addLabelsToIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
 	ackByReaction(githubClient, issueCommentEvent)
 	params := utils.GetTagNextAllParams(commentBody, Label)
+	// check if label exists, if yes, add it
+	labels, _, _ := githubClient.Issues.ListLabelsByIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
+		*issueCommentEvent.GetRepo().Name,
+		*issueCommentEvent.GetIssue().Number, nil)
+	for _, param := range params {
+		labelExists := false
+		for _, label := range labels {
+			if label.GetName() == param {
+				labelExists = true
+				break
+			}
+		}
+		// if not, create by api and add it.
+		if !labelExists {
+			color := labelColorMapping[param]
+			_, _, _ = githubClient.Issues.CreateLabel(ctx, *issueCommentEvent.GetRepo().Owner.Login,
+				*issueCommentEvent.GetRepo().Name, &github.Label{
+					Name:  &param,
+					Color: &color,
+				})
+		}
+	}
 	issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, *issueCommentEvent.GetRepo().Owner.Login,
 		*issueCommentEvent.GetRepo().Name,
 		*issueCommentEvent.GetIssue().Number, params)
