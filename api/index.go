@@ -218,6 +218,9 @@ func addLabelsToIssue(commentBody string, githubClient *github.Client, issueComm
 		// if not, create by api and add it.
 		if !labelExists {
 			color := labelColorMapping[param]
+			if color == "" {
+				color = "ffffff"
+			}
 			_, _, _ = githubClient.Issues.CreateLabel(ctx, *issueCommentEvent.GetRepo().Owner.Login,
 				*issueCommentEvent.GetRepo().Name, &github.Label{
 					Name:  &param,
