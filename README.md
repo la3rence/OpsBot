@@ -1,7 +1,7 @@
+# OpsBot 🤖️
+
 [![Test](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml/badge.svg)](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml)
 [![codecov](https://codecov.io/gh/Lonor/OpsBot/branch/main/graph/badge.svg?token=H16BEN675E)](https://codecov.io/gh/Lonor/OpsBot)
-
-# OpsBot 🤖️
 
 A robot based on GitHub sdk
 and [Vercel's Serverless Function (Go)](https://vercel.com/docs/runtimes#official-runtimes/go). It acts like
@@ -25,17 +25,19 @@ this repo. If you're interested in this stuff as well, issues or pull requests a
 
 Once every command accepted by bot, there'll be a 👍 reaction shows in the comment.
 
-## Configuration
+## Deployment
 
-[Deploy this on Vercel](https://go.lawrenceli.me/deploy-opsbot)
-
-Go to GitHub Repository -> Settings -> WebHook. Add a new WebHook, check `application/json`
-and choose all events(or events you care about). Input Payload URL (WebHook Serverless Function API), such
-as `https://your-username.vercel.app/api/index`. Protect this webhook by using secret with any string.
+[![Deploy with Vercel](https://vercel.com/button)](https://go.lawrenceli.me/deploy-opsbot)
 
 Register a new GitHub account (as the robot)
 and [create its personal access token](https://github.com/settings/tokens/new). Don't forget to config the `BOT_TOKEN`
-and the `WEBHOOK_SECRET` as the production environment variable and invite it as your repo's collaborator.
+and the `WEBHOOK_SECRET` as the production environment variable and invite it as your repo's collaborator for code access.
+
+After all set up, a new URL will be generated and you can deploy the bot to your repo.
+Go to GitHub Repository -> Settings -> WebHook. Add a new WebHook, check `application/json`
+and choose all events(or events you care about). Input Payload URL (WebHook Serverless Function API) provided by Vercel,
+such as `https://your-username.vercel.app/api/index`. Protect this webhook by using secret with the same string of 
+`WEBHOOK_SECRET`.
 
 For more information you can [contact the author](https://go.lawrenceli.me/contact) or open an issue.
 
