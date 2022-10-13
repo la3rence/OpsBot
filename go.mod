@@ -1,6 +1,6 @@
 module github.com/Lonor/OpsBot
 
-go 1.17
+go 1.19
 
 require (
 	github.com/google/go-github/v39 v39.2.0
