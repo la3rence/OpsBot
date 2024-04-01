@@ -1,9 +1,11 @@
 module github.com/Lonor/OpsBot
 
-go 1.20
+go 1.21
+
+toolchain go1.22.1
 
 require (
-	github.com/google/go-github/v58 v58.0.0
+	github.com/google/go-github/v61 v61.0.0
 	golang.org/x/oauth2 v0.18.0
 )
 
