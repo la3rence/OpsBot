@@ -36,6 +36,7 @@ var titleLabelMapping = map[string]string{
 	"bump":        "dependencies",
 	"deps":        "dependencies",
 	"dependency":  "dependencies",
+	"renovate":    "dependencies",
 	"release":     "release",
 	"test":        "test",
 	"doc":         "documentation",
@@ -43,6 +44,18 @@ var titleLabelMapping = map[string]string{
 	"wip":         "wip",
 	"refactor":    "refactor",
 	"bug":         "bug",
+	"功能":          "feature",
+	"报错":          "bug",
+	"优化":          "enhancement",
+	"请求":          "feature",
+	"测试":          "test",
+	"依赖":          "dependencies",
+	"升级":          "dependencies",
+	"国际化":         "i18n",
+	"i18n":        "i18n",
+	"性能":          "enhancement",
+	"?":           "question",
+	"？":           "question",
 }
 
 var labelColorMapping = map[string]string{
