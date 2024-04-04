@@ -18,7 +18,7 @@ const botName = "k8s-ci-bot"
 const (
 	Label   = "/label"
 	UnLabel = "/un-label"
-	LGTM    = "/lgtm"
+	LGTM    = "/lgtm" // rebase
 	Merge   = "/merge"
 	Close   = "/close"
 	Reopen  = "/reopen"
@@ -125,8 +125,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(commentBody, Approve) {
 				approvePullRequest(githubClient, issueCommentEvent)
 			}
-			if strings.Contains(commentBody, LGTM) || strings.Contains(commentBody, Merge) {
-				mergePullRequest(githubClient, issueCommentEvent)
+			if strings.Contains(commentBody, LGTM) {
+				mergePullRequest(githubClient, issueCommentEvent, "rebase")
+			}
+			if strings.Contains(commentBody, Merge) {
+				mergePullRequest(githubClient, issueCommentEvent, "merge")
 			}
 			if strings.Contains(commentBody, Close) {
 				closeOrOpenIssue(githubClient, issueCommentEvent, false)
@@ -300,7 +303,7 @@ func addLabelIfIssueOpen(githubClient *github.Client, issuesEvent github.IssuesE
 	}
 }
 
-func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, mergeMethod string) {
 	ackByReaction(githubClient, issueCommentEvent)
 	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
 	senderName := issueCommentEvent.GetSender().GetLogin()
@@ -312,15 +315,15 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 		return
 	}
 	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(ctx, owner, repo, number)
-	mergeComment := fmt.Sprintf("PR #%d was merged (with rebase). Thanks for your contribution.", number)
+	mergeComment := fmt.Sprintf("PR #%d was merged. Thanks for your contribution.", number)
 	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
 	if mergedBefore {
-		log.Printf(mergeComment)
+		log.Println(mergeComment)
 		sendComment(githubClient, owner, repo, number, mergeComment)
 	} else {
 		log.Printf("start to " + commitMsg + "\n")
 		mergeResult, _, err := githubClient.PullRequests.Merge(ctx, owner, repo, number, commitMsg, &github.PullRequestOptions{
-			MergeMethod: "rebase",
+			MergeMethod: mergeMethod, // optional with string: "merge", "squash", and "rebase"
 		})
 		if err != nil {
 			log.Println(err)
@@ -329,12 +332,12 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 			log.Println(mergeResult)
 			merged := mergeResult.GetMerged()
 			if merged {
-				log.Printf(mergeComment)
+				log.Println(mergeComment)
 				sendComment(githubClient, owner, repo, number, mergeComment)
 			} else {
 				failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
 				sendCommentWithDetailsDom(githubClient, owner, repo, number, "Debug", failMsg)
-				log.Printf(failMsg)
+				log.Println(failMsg)
 			}
 		}
 	}
