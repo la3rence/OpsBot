@@ -211,8 +211,8 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 			},
 		)
 		log.Println(submitReview)
-		labels := []string{"approved"}
-		addLabelsToIssue(labels, client, owner, repo, issueNumber)
+		// labels := []string{"approved"}
+		// addLabelsToIssue(labels, client, owner, repo, issueNumber)
 	} else {
 		log.Println("CreateReview Error" + err.Error())
 	}
