@@ -110,6 +110,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		pullRequestEvent := *e
 		addLabelIfPROpen(githubClient, pullRequestEvent)
 		requestReviewIfPROpen(githubClient, pullRequestEvent)
+	case *github.PullRequestReviewEvent:
+		addApproveLabelIfApproved(githubClient, *e)
 	case *github.IssuesEvent:
 		issueEvent := *e
 		addLabelIfIssueOpen(githubClient, issueEvent)
@@ -298,6 +300,19 @@ func addLabelIfPROpen(githubClient *github.Client, pullRequestEvent github.PullR
 					*pullRequestEvent.GetPullRequest().Number)
 			}
 		}
+	}
+}
+
+func addApproveLabelIfApproved(githubClient *github.Client, reviewEvent github.PullRequestReviewEvent) {
+	review := *reviewEvent.Review
+	state := review.GetState()
+	approvedString := "approved"
+	if state == approvedString {
+		labels := []string{approvedString}
+		owner := reviewEvent.GetRepo().GetOwner().GetLogin()
+		repo := reviewEvent.GetRepo().GetName()
+		issueNumber := reviewEvent.GetPullRequest().GetNumber()
+		addLabelsToIssue(labels, githubClient, owner, repo, issueNumber)
 	}
 }
 
