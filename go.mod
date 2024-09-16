@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.23.1
 
 require (
-	github.com/google/go-github/v63 v63.0.0
+	github.com/google/go-github/v65 v65.0.0
 	golang.org/x/oauth2 v0.23.0
 )
 
