@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/Lonor/OpsBot/utils"
-	"github.com/google/go-github/v65/github"
+	"github.com/google/go-github/v66/github"
 	"golang.org/x/oauth2"
 )
 
