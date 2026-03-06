@@ -2,7 +2,7 @@ module github.com/Lonor/OpsBot
 
 go 1.23.0
 
-toolchain go1.24.5
+toolchain go1.26.1
 
 require (
 	github.com/google/go-github/v74 v74.0.0
