@@ -79,13 +79,16 @@ var labelColorMapping = map[string]string{
 var ctx = context.Background()
 var secret = os.Getenv("WEBHOOK_SECRET")
 
-func getGitHubClient() *github.Client {
+func getGitHubClient() (*github.Client, error) {
 	token := os.Getenv("BOT_TOKEN")
+	if token == "" {
+		return nil, fmt.Errorf("BOT_TOKEN environment variable is not set")
+	}
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
-	return github.NewClient(tc)
+	return github.NewClient(tc), nil
 }
 
 // this Handler used to be the serverless function
@@ -102,19 +105,41 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("could not parse webhook: %s\n", parseErr)
 		return
 	}
-	githubClient := getGitHubClient()
+	githubClient, err := getGitHubClient()
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		log.Printf("error getting GitHub client: %s\n", err)
+		return
+	}
+
+	// Add proper error handling for all operations
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic: %v", r)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+	}()
+
 	switch e := event.(type) {
 	case *github.PushEvent:
 		// this is a commit push, do something with it
 	case *github.PullRequestEvent:
 		pullRequestEvent := *e
-		addLabelIfPROpen(githubClient, pullRequestEvent)
-		requestReviewIfPROpen(githubClient, pullRequestEvent)
+		if err := addLabelIfPROpen(githubClient, pullRequestEvent); err != nil {
+			log.Printf("Error adding label to PR: %v", err)
+		}
+		if err := requestReviewIfPROpen(githubClient, pullRequestEvent); err != nil {
+			log.Printf("Error requesting review for PR: %v", err)
+		}
 	case *github.PullRequestReviewEvent:
-		addApproveLabelIfApproved(githubClient, *e)
+		if err := addApproveLabelIfApproved(githubClient, *e); err != nil {
+			log.Printf("Error adding approve label: %v", err)
+		}
 	case *github.IssuesEvent:
 		issueEvent := *e
-		addLabelIfIssueOpen(githubClient, issueEvent)
+		if err := addLabelIfIssueOpen(githubClient, issueEvent); err != nil {
+			log.Printf("Error adding label to issue: %v", err)
+		}
 	case *github.WatchEvent:
 		if e.Action != nil && *e.Action == "starred" {
 			fmt.Printf("%s starred repository %s\n",
@@ -132,28 +157,44 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if strings.Contains(commentBody, Label) {
-				addLabelsByComment(commentBody, githubClient, issueCommentEvent)
+				if err := addLabelsByComment(commentBody, githubClient, issueCommentEvent); err != nil {
+					log.Printf("Error adding labels: %v", err)
+				}
 			}
 			if strings.Contains(commentBody, UnLabel) {
-				removeLabelFromIssue(commentBody, githubClient, issueCommentEvent)
+				if err := removeLabelFromIssue(commentBody, githubClient, issueCommentEvent); err != nil {
+					log.Printf("Error removing labels: %v", err)
+				}
 			}
 			if strings.Contains(commentBody, Approve) {
-				approvePullRequest(githubClient, issueCommentEvent)
+				if err := approvePullRequest(githubClient, issueCommentEvent); err != nil {
+					log.Printf("Error approving PR: %v", err)
+				}
 			}
 			if strings.Contains(commentBody, LGTM) {
-				mergePullRequest(githubClient, issueCommentEvent, "rebase")
+				if err := mergePullRequest(githubClient, issueCommentEvent, "rebase"); err != nil {
+					log.Printf("Error merging PR with rebase: %v", err)
+				}
 			}
 			if strings.Contains(commentBody, Merge) {
-				mergePullRequest(githubClient, issueCommentEvent, "merge")
+				if err := mergePullRequest(githubClient, issueCommentEvent, "merge"); err != nil {
+					log.Printf("Error merging PR: %v", err)
+				}
 			}
 			if strings.Contains(commentBody, Close) {
-				closeOrOpenIssue(githubClient, issueCommentEvent, false)
+				if err := closeOrOpenIssue(githubClient, issueCommentEvent, false); err != nil {
+					log.Printf("Error closing issue: %v", err)
+				}
 			}
 			if strings.Contains(commentBody, Reopen) || strings.Contains(commentBody, ReOpen) {
-				closeOrOpenIssue(githubClient, issueCommentEvent, true)
+				if err := closeOrOpenIssue(githubClient, issueCommentEvent, true); err != nil {
+					log.Printf("Error reopening issue: %v", err)
+				}
 			}
 			if strings.Contains(commentBody, Update) {
-				updatePullRequest(githubClient, issueCommentEvent)
+				if err := updatePullRequest(githubClient, issueCommentEvent); err != nil {
+					log.Printf("Error updating PR: %v", err)
+				}
 			}
 		}
 	default:
@@ -172,12 +213,15 @@ func ackByReaction(client *github.Client, issueCommentEvent github.IssueCommentE
 	_, _, _ = client.Reactions.CreateIssueCommentReaction(ctx, owner, repo, commentId, "+1")
 }
 
-func updatePullRequest(client *github.Client, issueCommentEvent github.IssueCommentEvent) {
+func updatePullRequest(client *github.Client, issueCommentEvent github.IssueCommentEvent) error {
 	ackByReaction(client, issueCommentEvent)
 	repo := *issueCommentEvent.GetRepo().Name
 	owner := *issueCommentEvent.GetRepo().Owner.Login
 	number := *issueCommentEvent.GetIssue().Number
-	pullRequest, _, _ := client.PullRequests.Get(ctx, owner, repo, number)
+	pullRequest, _, err := client.PullRequests.Get(ctx, owner, repo, number)
+	if err != nil {
+		return fmt.Errorf("failed to get pull request: %w", err)
+	}
 	sourceBranchSha := pullRequest.GetHead().GetSHA()
 	// https://docs.github.com/cn/rest/reference/pulls#update-a-pull-request-branch
 	_, res, err := client.PullRequests.UpdateBranch(ctx, owner, repo, number,
@@ -191,10 +235,12 @@ func updatePullRequest(client *github.Client, issueCommentEvent github.IssueComm
 		} else {
 			sendCommentWithDetailsDom(client, owner, repo, number, "Error", err.Error())
 		}
+		return fmt.Errorf("failed to update PR branch: %w", err)
 	}
+	return nil
 }
 
-func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
+func approvePullRequest(client *github.Client, event github.IssueCommentEvent) error {
 	approveEventName := "APPROVE"
 	owner := event.GetRepo().GetOwner().GetLogin()
 	repo := event.GetRepo().GetName()
@@ -203,33 +249,47 @@ func approvePullRequest(client *github.Client, event github.IssueCommentEvent) {
 		&github.PullRequestReviewRequest{
 			Event: &approveEventName,
 		})
-	if err == nil {
-		submitReview, _, _ := client.PullRequests.SubmitReview(ctx, owner, repo, issueNumber,
-			review.GetID(),
-			&github.PullRequestReviewRequest{
-				Event: &approveEventName,
-			},
-		)
-		log.Println(submitReview)
-		// labels := []string{"approved"}
-		// addLabelsToIssue(labels, client, owner, repo, issueNumber)
-	} else {
+	if err != nil {
 		log.Println("CreateReview Error" + err.Error())
+		return fmt.Errorf("failed to create review: %w", err)
 	}
+
+	submitReview, _, err := client.PullRequests.SubmitReview(ctx, owner, repo, issueNumber,
+		review.GetID(),
+		&github.PullRequestReviewRequest{
+			Event: &approveEventName,
+		},
+	)
+	if err != nil {
+		log.Println("SubmitReview Error" + err.Error())
+		return fmt.Errorf("failed to submit review: %w", err)
+	}
+
+	log.Println(submitReview)
+	// labels := []string{"approved"}
+	// addLabelsToIssue(labels, client, owner, repo, issueNumber)
+	return nil
 }
 
-func addLabelsByComment(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+func addLabelsByComment(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) error {
 	ackByReaction(githubClient, issueCommentEvent)
 	labelsToAdd := utils.GetTagNextAllParams(commentBody, Label)
-	addLabelsToIssue(labelsToAdd, githubClient,
+	err := addLabelsToIssue(labelsToAdd, githubClient,
 		issueCommentEvent.GetRepo().GetOwner().GetLogin(),
 		issueCommentEvent.GetRepo().GetName(),
 		issueCommentEvent.GetIssue().GetNumber())
+	if err != nil {
+		return fmt.Errorf("failed to add labels by comment: %w", err)
+	}
+	return nil
 }
 
-func addLabelsToIssue(labelsToAdd []string, githubClient *github.Client, owner string, repo string, issueNumber int) {
+func addLabelsToIssue(labelsToAdd []string, githubClient *github.Client, owner string, repo string, issueNumber int) error {
 	// check if label exists, if yes, add it
-	labels, _, _ := githubClient.Issues.ListLabelsByIssue(ctx, owner, repo, issueNumber, nil)
+	labels, _, err := githubClient.Issues.ListLabelsByIssue(ctx, owner, repo, issueNumber, nil)
+	if err != nil {
+		return fmt.Errorf("failed to list labels for issue: %w", err)
+	}
 	for _, param := range labelsToAdd {
 		labelExists := false
 		for _, label := range labels {
@@ -244,17 +304,24 @@ func addLabelsToIssue(labelsToAdd []string, githubClient *github.Client, owner s
 			if color == "" {
 				color = labelColorMapping["default"]
 			}
-			_, _, _ = githubClient.Issues.CreateLabel(ctx, owner, repo, &github.Label{
+			_, _, err := githubClient.Issues.CreateLabel(ctx, owner, repo, &github.Label{
 				Name:  &param,
 				Color: &color,
 			})
+			if err != nil {
+				log.Printf("Failed to create label %s: %v", param, err)
+			}
 		}
 	}
 	issue, response, githubErr := githubClient.Issues.AddLabelsToIssue(ctx, owner, repo, issueNumber, labelsToAdd)
+	if githubErr != nil {
+		return fmt.Errorf("failed to add labels to issue: %w", githubErr)
+	}
 	log.Println(response, issue, githubErr)
+	return nil
 }
 
-func removeLabelFromIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) {
+func removeLabelFromIssue(commentBody string, githubClient *github.Client, issueCommentEvent github.IssueCommentEvent) error {
 	ackByReaction(githubClient, issueCommentEvent)
 	params := utils.GetTagNextAllParams(commentBody, UnLabel)
 	for _, param := range params {
@@ -264,13 +331,15 @@ func removeLabelFromIssue(commentBody string, githubClient *github.Client, issue
 			*issueCommentEvent.GetIssue().Number,
 			param)
 		if githubErr != nil {
-			log.Print(githubErr)
+			log.Printf("Error removing label %s: %v", param, githubErr)
+			return fmt.Errorf("failed to remove label %s: %w", param, githubErr)
 		}
 		log.Println(response)
 	}
+	return nil
 }
 
-func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
+func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) error {
 	action := *pullRequestEvent.Action
 	if action == "opened" || action == "reopened" {
 		reviewers, response, err := githubClient.PullRequests.RequestReviewers(ctx,
@@ -283,27 +352,33 @@ func requestReviewIfPROpen(githubClient *github.Client, pullRequestEvent github.
 		)
 		if err != nil {
 			log.Print(err)
+			return fmt.Errorf("failed to request reviewers: %w", err)
 		}
 		log.Println(response, reviewers)
 	}
+	return nil
 }
 
-func addLabelIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) {
+func addLabelIfPROpen(githubClient *github.Client, pullRequestEvent github.PullRequestEvent) error {
 	action := *pullRequestEvent.Action
 	title := pullRequestEvent.GetPullRequest().GetTitle()
 	if action == "edited" || action == "opened" {
 		for titleKey, labelValue := range titleLabelMapping {
 			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
-				addLabelsToIssue([]string{labelValue}, githubClient,
+				err := addLabelsToIssue([]string{labelValue}, githubClient,
 					*pullRequestEvent.GetRepo().Owner.Login,
 					*pullRequestEvent.GetRepo().Name,
 					*pullRequestEvent.GetPullRequest().Number)
+				if err != nil {
+					return fmt.Errorf("failed to add label to PR: %w", err)
+				}
 			}
 		}
 	}
+	return nil
 }
 
-func addApproveLabelIfApproved(githubClient *github.Client, reviewEvent github.PullRequestReviewEvent) {
+func addApproveLabelIfApproved(githubClient *github.Client, reviewEvent github.PullRequestReviewEvent) error {
 	review := *reviewEvent.Review
 	state := review.GetState()
 	approvedString := "approved"
@@ -312,26 +387,34 @@ func addApproveLabelIfApproved(githubClient *github.Client, reviewEvent github.P
 		owner := reviewEvent.GetRepo().GetOwner().GetLogin()
 		repo := reviewEvent.GetRepo().GetName()
 		issueNumber := reviewEvent.GetPullRequest().GetNumber()
-		addLabelsToIssue(labels, githubClient, owner, repo, issueNumber)
+		err := addLabelsToIssue(labels, githubClient, owner, repo, issueNumber)
+		if err != nil {
+			return fmt.Errorf("failed to add approve label: %w", err)
+		}
 	}
+	return nil
 }
 
-func addLabelIfIssueOpen(githubClient *github.Client, issuesEvent github.IssuesEvent) {
+func addLabelIfIssueOpen(githubClient *github.Client, issuesEvent github.IssuesEvent) error {
 	action := *issuesEvent.Action
 	title := issuesEvent.GetIssue().GetTitle()
 	if action == "edited" || action == "opened" {
 		for titleKey, labelValue := range titleLabelMapping {
 			if strings.Contains(strings.ToLower(title), strings.ToLower(titleKey)) {
-				addLabelsToIssue([]string{labelValue}, githubClient,
+				err := addLabelsToIssue([]string{labelValue}, githubClient,
 					*issuesEvent.GetRepo().Owner.Login,
 					*issuesEvent.GetRepo().Name,
 					*issuesEvent.GetIssue().Number)
+				if err != nil {
+					return fmt.Errorf("failed to add label to issue: %w", err)
+				}
 			}
 		}
 	}
+	return nil
 }
 
-func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, mergeMethod string) {
+func mergePullRequest(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, mergeMethod string) error {
 	ackByReaction(githubClient, issueCommentEvent)
 	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
 	senderName := issueCommentEvent.GetSender().GetLogin()
@@ -340,9 +423,12 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 	if owner != senderName {
 		sendComment(githubClient, owner, repo, number,
 			fmt.Sprintf("Sorry, @%s - This pull request can only be merged by the owner (@%s).", senderName, owner))
-		return
+		return nil
 	}
-	mergedBefore, _, _ := githubClient.PullRequests.IsMerged(ctx, owner, repo, number)
+	mergedBefore, _, err := githubClient.PullRequests.IsMerged(ctx, owner, repo, number)
+	if err != nil {
+		return fmt.Errorf("failed to check if PR is merged: %w", err)
+	}
 	mergeComment := fmt.Sprintf("PR #%d was merged. Thanks for your contribution.", number)
 	commitMsg := fmt.Sprintf("merge: PR(#%d)", number)
 	if mergedBefore {
@@ -356,6 +442,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 		if err != nil {
 			log.Println(err)
 			sendCommentWithDetailsDom(githubClient, owner, repo, number, "Error", err.Error())
+			return fmt.Errorf("failed to merge PR: %w", err)
 		} else {
 			log.Println(mergeResult)
 			merged := mergeResult.GetMerged()
@@ -366,9 +453,11 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 				failMsg := fmt.Sprintf("Fail to merge this PR #%d", number)
 				sendCommentWithDetailsDom(githubClient, owner, repo, number, "Debug", failMsg)
 				log.Println(failMsg)
+				return fmt.Errorf("PR merge result was not successful: %s", failMsg)
 			}
 		}
 	}
+	return nil
 }
 
 func sendComment(githubClient *github.Client, owner string, repo string, number int, comment string) *github.IssueComment {
@@ -389,7 +478,7 @@ func sendCommentWithDetailsDom(githubClient *github.Client, owner string, repo s
 		`<details><summary>`+detailSummary+`</summary><p>`+detailBody+`</p></details>`)
 }
 
-func closeOrOpenIssue(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, open bool) {
+func closeOrOpenIssue(githubClient *github.Client, issueCommentEvent github.IssueCommentEvent, open bool) error {
 	ackByReaction(githubClient, issueCommentEvent)
 	owner := issueCommentEvent.GetRepo().GetOwner().GetLogin()
 	repo := issueCommentEvent.GetRepo().GetName()
@@ -403,8 +492,11 @@ func closeOrOpenIssue(githubClient *github.Client, issueCommentEvent github.Issu
 	edit, response, err := githubClient.Issues.Edit(ctx, owner, repo, number, &github.IssueRequest{
 		State: &state,
 	})
-	if err == nil {
-		log.Println(response)
-		log.Println(edit)
+	if err != nil {
+		log.Println(err)
+		return fmt.Errorf("failed to close or open issue: %w", err)
 	}
+	log.Println(response)
+	log.Println(edit)
+	return nil
 }

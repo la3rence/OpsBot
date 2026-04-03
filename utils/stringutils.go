@@ -1,44 +1,64 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
 
 func StringIndexOf(originalArray []string, wordToFind interface{}) []int {
-	length := len(originalArray)
-	interfaceArray := make([]interface{}, length)
-	for i, v := range originalArray {
-		interfaceArray[i] = v
+	// Validate input
+	if originalArray == nil {
+		return []int{}
 	}
-	var i = 0
-	var indexArray []int
-	for ; i < length; i++ {
-		if strings.Compare(wordToFind.(string), originalArray[i]) == 0 {
-			indexArray = append(indexArray, i)
+
+	word, ok := wordToFind.(string)
+	if !ok {
+		return []int{}
+	}
+
+	var indexes []int
+	for i, v := range originalArray {
+		if strings.Compare(word, v) == 0 {
+			indexes = append(indexes, i)
 		}
 	}
-	return indexArray
+	return indexes
 }
 
-func GetTagNextOneParam(originalMessage string, tagName string) (nextString string, err error) {
+func GetTagNextOneParam(originalMessage string, tagName string) (string, error) {
+	if tagName == "" {
+		return "", errors.New("tagName cannot be empty")
+	}
+
 	wordArray := strings.Fields(originalMessage)
 	indexes := StringIndexOf(wordArray, tagName)
-	if len(wordArray) > indexes[0]+1 {
-		nextString = wordArray[indexes[0]+1]
-		return nextString, nil
+
+	if len(indexes) == 0 {
+		return "", fmt.Errorf("tag '%s' not found", tagName)
 	}
-	return nextString, fmt.Errorf("param of %s required", tagName)
+
+	firstIndex := indexes[0]
+	if firstIndex < 0 || firstIndex >= len(wordArray)-1 {
+		return "", fmt.Errorf("no parameter found after tag '%s'", tagName)
+	}
+
+	return wordArray[firstIndex+1], nil
 }
 
-func GetTagNextAllParams(originalMessage string, tagName string) (params []string) {
+func GetTagNextAllParams(originalMessage string, tagName string) []string {
+	if tagName == "" {
+		return []string{}
+	}
+
 	wordArray := strings.Fields(originalMessage)
 	tagIndexes := StringIndexOf(wordArray, tagName)
+
+	var params []string
 	for _, v := range tagIndexes {
-		if v+1 < len(wordArray) {
-			param := wordArray[v+1]
-			params = append(params, param)
+		if v >= 0 && v < len(wordArray)-1 {
+			params = append(params, wordArray[v+1])
 		}
 	}
-	return
+	return params
 }
