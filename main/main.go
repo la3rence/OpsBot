@@ -1,7 +1,7 @@
 package main
 
 import (
-	api "github.com/Lonor/OpsBot/api"
+	api "github.com/la3rence/OpsBot/api"
 	"log"
 	"net/http"
 )

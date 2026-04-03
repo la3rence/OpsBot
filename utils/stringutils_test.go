@@ -51,7 +51,7 @@ func TestGetTagNextOneParam(t *testing.T) {
 		t.Errorf("The param after the tag expected to be %s, but %s got", tagParam, param)
 	}
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Errorf("%s", err.Error())
 	}
 }
 

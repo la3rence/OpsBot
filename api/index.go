@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Lonor/OpsBot/utils"
+	"github.com/la3rence/OpsBot/utils"
 	"github.com/google/go-github/v74/github"
 	"golang.org/x/oauth2"
 )
@@ -349,7 +349,7 @@ func mergePullRequest(githubClient *github.Client, issueCommentEvent github.Issu
 		log.Println(mergeComment)
 		sendComment(githubClient, owner, repo, number, mergeComment)
 	} else {
-		log.Printf("start to " + commitMsg + "\n")
+		log.Printf("start to %s\n", commitMsg)
 		mergeResult, _, err := githubClient.PullRequests.Merge(ctx, owner, repo, number, commitMsg, &github.PullRequestOptions{
 			MergeMethod: mergeMethod, // optional with string: "merge", "squash", and "rebase"
 		})

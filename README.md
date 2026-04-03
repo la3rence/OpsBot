@@ -1,7 +1,7 @@
 # OpsBot 🤖️
 
-[![Test](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml/badge.svg)](https://github.com/Lonor/OpsBot/actions/workflows/test.yaml)
-[![codecov](https://codecov.io/gh/Lonor/OpsBot/branch/main/graph/badge.svg?token=H16BEN675E)](https://codecov.io/gh/Lonor/OpsBot)
+[![Test](https://github.com/la3rence/OpsBot/actions/workflows/test.yaml/badge.svg)](https://github.com/la3rence/OpsBot/actions/workflows/test.yaml)
+[![codecov](https://codecov.io/gh/la3rence/OpsBot/branch/main/graph/badge.svg?token=H16BEN675E)](https://codecov.io/gh/la3rence/OpsBot)
 
 A robot based on GitHub sdk
 and [Vercel's Serverless Function (Go)](https://vercel.com/docs/runtimes#official-runtimes/go). It acts like
