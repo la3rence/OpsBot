@@ -31,7 +31,7 @@ func GetTagNextOneParam(originalMessage string, tagName string) (string, error) 
 		return "", errors.New("tagName cannot be empty")
 	}
 
-	wordArray := strings.Fields(originalArray)
+	wordArray := strings.Fields(originalMessage)
 	indexes := StringIndexOf(wordArray, tagName)
 
 	if len(indexes) == 0 {
