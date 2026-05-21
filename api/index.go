@@ -88,7 +88,7 @@ func getGitHubClient() (*github.Client, error) {
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
-	return github.NewClient(tc), nil
+	return github.NewClient(github.WithHTTPClient(tc))
 }
 
 // this Handler used to be the serverless function
